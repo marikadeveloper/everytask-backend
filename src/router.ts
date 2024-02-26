@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { createTask, getOneTask, getTasks } from './handlers/task';
 import { handleInputErrors } from './modules/middleware';
+import { TaskImpact } from './types/enums';
 
 const router = Router();
 
@@ -34,12 +35,7 @@ router.post(
   '/tasks',
   body('title').isString(),
   body('dueDate').isString(),
-  body('impact').isIn([
-    'HIGH_IMPACT_HIGH_EFFORT',
-    'HIGH_IMPACT_LOW_EFFORT',
-    'LOW_IMPACT_HIGH_EFFORT',
-    'LOW_IMPACT_LOW_EFFORT',
-  ]),
+  body('impact').isIn(Object.values(TaskImpact)),
   handleInputErrors,
   createTask,
 );

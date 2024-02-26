@@ -63,6 +63,7 @@ model Task {
   user           User            @relation(fields: [userId], references: [id])
   // @@unique([id, userId], name: "unique_task")
   // TODO: add indexes for faster lookups
+  @@index ([userId]) // add index for userId
 }
 
 model Category {
