@@ -31,17 +31,10 @@ Table Task {
   createdAt DateTime [default: `now()`, not null]
   categoryId String
   userId String [not null]
-  impactId TASK_IMPACT [not null]
-  impact TaskImpact [not null]
+  impact TASK_IMPACT [not null]
   checklistItems ChecklistItem [not null]
   category Category
   user User [not null]
-}
-
-Table TaskImpact {
-  value TASK_IMPACT [pk]
-  basePoints Int [not null, default: 1]
-  tasks Task [not null]
 }
 
 Table Category {
@@ -128,8 +121,6 @@ Enum CHALLENGE_TYPE {
   MONTHLY
   CUSTOM
 }
-
-Ref: Task.impactId > TaskImpact.value
 
 Ref: Task.categoryId > Category.id
 

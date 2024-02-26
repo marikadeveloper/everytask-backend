@@ -26,3 +26,22 @@ export const getOneTask = async (req, res) => {
     data: task,
   });
 };
+
+// Create a task
+export const createTask = async (req, res) => {
+  const task = await prisma.task.create({
+    data: {
+      emoji: req.body.emoji,
+      title: req.body.title,
+      description: req.body.description,
+      dueDate: new Date(req.body.dueDate),
+      impact: req.body.impact,
+      userId: req.user.id,
+      categoryId: req.body.categoryId,
+    },
+  });
+
+  res.json({
+    data: task,
+  });
+};

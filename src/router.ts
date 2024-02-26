@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { getOneTask, getTasks } from './handlers/task';
+import { body } from 'express-validator';
+import { createTask, getOneTask, getTasks } from './handlers/task';
+import { handleInputErrors } from './modules/middleware';
 
 const router = Router();
 
@@ -27,7 +29,20 @@ const router = Router();
  * Task
  */
 router.get('/tasks', getTasks);
-router.get('/task/:id', getOneTask);
+router.get('/tasks/:id', getOneTask);
+router.post(
+  '/tasks',
+  body('title').isString(),
+  body('dueDate').isString(),
+  body('impact').isIn([
+    'HIGH_IMPACT_HIGH_EFFORT',
+    'HIGH_IMPACT_LOW_EFFORT',
+    'LOW_IMPACT_HIGH_EFFORT',
+    'LOW_IMPACT_LOW_EFFORT',
+  ]),
+  handleInputErrors,
+  createTask,
+);
 
 router.use((err, req, res, next) => {
   if (err.type === 'auth') {
