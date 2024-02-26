@@ -1,0 +1,148 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table User {
+  id String [pk]
+  email String [unique, not null]
+  name String
+  dateFormat String [default: 'DD/MM/YYYY']
+  createdAt DateTime [default: `now()`, not null]
+  password String [not null]
+  points Int [not null, default: 0]
+  level Int [not null, default: 1]
+  tasks Task [not null]
+  streak Streak
+  userChallenges UserChallenge [not null]
+  userBadges UserBadge [not null]
+
+  indexes {
+    (id, email) [unique]
+  }
+}
+
+Table Task {
+  id String [pk]
+  emoji String
+  title String [not null]
+  description String
+  status TASK_STATUS [not null, default: 'TODO']
+  dueDate DateTime [not null]
+  createdAt DateTime [default: `now()`, not null]
+  categoryId String
+  userId String [not null]
+  impactId TASK_IMPACT [not null]
+  impact TaskImpact [not null]
+  checklistItems ChecklistItem [not null]
+  category Category
+  user User [not null]
+}
+
+Table TaskImpact {
+  value TASK_IMPACT [pk]
+  basePoints Int [not null, default: 1]
+  tasks Task [not null]
+}
+
+Table Category {
+  id String [pk]
+  name String [not null]
+  tasks Task [not null]
+}
+
+Table ChecklistItem {
+  id String [pk]
+  title String [not null]
+  completed Boolean [not null, default: false]
+  order Int [not null]
+  taskId String [not null]
+  task Task [not null]
+}
+
+Table Streak {
+  id String [pk]
+  startDate DateTime [default: `now()`, not null]
+  currentStreak Int [not null, default: 0]
+  longestStreak Int [not null, default: 0]
+  userId String [unique, not null]
+  user User [not null]
+}
+
+Table Badge {
+  id String [pk]
+  name String [not null]
+  description String [not null]
+  criteria Json [not null]
+  icon String [not null]
+  userBadges UserBadge [not null]
+}
+
+Table UserBadge {
+  id String [pk]
+  earnedAt DateTime [default: `now()`, not null]
+  userId String [not null]
+  badgeId String [not null]
+  user User [not null]
+  badge Badge [not null]
+}
+
+Table Challenge {
+  id String [pk]
+  title String [not null]
+  description String [not null]
+  type CHALLENGE_TYPE [not null]
+  startDate DateTime [default: `now()`, not null]
+  endDate DateTime [not null]
+  criteria Json [not null]
+  userChallenges UserChallenge [not null]
+}
+
+Table UserChallenge {
+  id String [pk]
+  completed Boolean [not null, default: false]
+  progress Int [not null, default: 0]
+  startDate DateTime [default: `now()`, not null]
+  endDate DateTime [not null]
+  challengeId String [not null]
+  userId String [not null]
+  challenge Challenge [not null]
+  user User [not null]
+}
+
+Enum TASK_STATUS {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+Enum TASK_IMPACT {
+  HIGH_IMPACT_HIGH_EFFORT
+  HIGH_IMPACT_LOW_EFFORT
+  LOW_IMPACT_HIGH_EFFORT
+  LOW_IMPACT_LOW_EFFORT
+}
+
+Enum CHALLENGE_TYPE {
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+Ref: Task.impactId > TaskImpact.value
+
+Ref: Task.categoryId > Category.id
+
+Ref: Task.userId > User.id
+
+Ref: ChecklistItem.taskId > Task.id
+
+Ref: Streak.userId - User.id
+
+Ref: UserBadge.userId > User.id
+
+Ref: UserBadge.badgeId > Badge.id
+
+Ref: UserChallenge.challengeId > Challenge.id
+
+Ref: UserChallenge.userId > User.id
