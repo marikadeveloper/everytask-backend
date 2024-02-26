@@ -62,6 +62,7 @@ model Task {
   category       Category?       @relation(fields: [categoryId], references: [id])
   user           User            @relation(fields: [userId], references: [id])
   // @@unique([id, userId], name: "unique_task")
+  // TODO: add indexes for faster lookups
 }
 
 model Category {
