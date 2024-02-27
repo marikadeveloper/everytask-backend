@@ -1,30 +1,16 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { createTask, getOneTask, getTasks } from './handlers/task';
+import { me } from './handlers/user';
 import { handleInputErrors } from './modules/middleware';
 import { TaskImpact } from './types/enums';
 
 const router = Router();
 
 /**
- * Product
+ * Current logged user (not used in the frontend for now)
  */
-// router.get('/product', getProducts);
-// router.get('/product/:id', getOneProduct);
-// // req.body must have a field called name
-// router.put(
-//   '/product/:id',
-//   body('name').isString(),
-//   handleInputErrors,
-//   updateProduct,
-// );
-// router.post(
-//   '/product',
-//   body('name').isString(),
-//   handleInputErrors,
-//   createProduct,
-// );
-// router.delete('/product/:id', deleteProduct);
+router.get('/me', me);
 
 /**
  * Task
@@ -39,6 +25,8 @@ router.post(
   handleInputErrors,
   createTask,
 );
+
+// TODO: put, delete
 
 router.use((err, req, res, next) => {
   if (err.type === 'auth') {

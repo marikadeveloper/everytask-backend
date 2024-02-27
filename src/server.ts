@@ -1,7 +1,12 @@
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
-import { createNewUser, signIn } from './handlers/user';
+import {
+  createNewUser,
+  resetPassword,
+  sendResetPasswordEmail,
+  signIn,
+} from './handlers/user';
 import { protect } from './modules/auth';
 import router from './router';
 
@@ -21,8 +26,10 @@ app.get('/', (req, res) => {
 
 app.use('/api', protect, router);
 
-app.post('/user', createNewUser);
-app.post('/signin', signIn);
+app.post('/register', createNewUser);
+app.post('/login', signIn);
+app.post('/reset-password-request', sendResetPasswordEmail);
+app.post('/reset-password', resetPassword);
 
 app.use((err, req, res, next) => {
   if (err.type === 'auth') {

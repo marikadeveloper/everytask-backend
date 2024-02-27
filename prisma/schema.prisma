@@ -30,8 +30,6 @@ model User {
   streak         Streak?
   userChallenges UserChallenge[]
   userBadges     UserBadge[]
-
-  @@unique([id, email], name: "unique_user")
 }
 
 enum TASK_STATUS {
@@ -61,9 +59,10 @@ model Task {
   checklistItems ChecklistItem[]
   category       Category?       @relation(fields: [categoryId], references: [id])
   user           User            @relation(fields: [userId], references: [id])
+
   // @@unique([id, userId], name: "unique_task")
   // TODO: add indexes for faster lookups
-  @@index ([userId]) // add index for userId
+  @@index([userId]) // add index for userId
 }
 
 model Category {

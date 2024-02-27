@@ -18,6 +18,15 @@ export const createJWT = (user) => {
   return token;
 };
 
+export const decodeJWT = (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const protect = (req, res, next) => {
   const bearer = req.headers.authorization;
 

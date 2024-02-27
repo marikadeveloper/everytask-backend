@@ -15,10 +15,6 @@ Table User {
   streak Streak
   userChallenges UserChallenge [not null]
   userBadges UserBadge [not null]
-
-  indexes {
-    (id, email) [unique]
-  }
 }
 
 Table Task {
