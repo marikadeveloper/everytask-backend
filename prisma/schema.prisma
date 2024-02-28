@@ -80,7 +80,7 @@ model ChecklistItem {
   task      Task    @relation(fields: [taskId], references: [id])
 }
 
-//Check for completed tasks daily (or desired interval).
+// Check for completed tasks daily (or desired interval).
 // If a task is completed, increment the currentStreak in the user's corresponding Streak record (create a new record if one doesn't exist).
 // If a task isn't completed, reset the currentStreak to 0.
 // Update the longestStreak if the currentStreak surpasses it.
