@@ -61,7 +61,6 @@ model Task {
   user           User            @relation(fields: [userId], references: [id])
 
   // @@unique([id, userId], name: "unique_task")
-  // TODO: add indexes for faster lookups
   @@index([userId]) // add index for userId
 }
 
@@ -78,6 +77,8 @@ model ChecklistItem {
   order     Int
   taskId    String
   task      Task    @relation(fields: [taskId], references: [id])
+
+  @@index([taskId]) // add index for taskId
 }
 
 // Check for completed tasks daily (or desired interval).
