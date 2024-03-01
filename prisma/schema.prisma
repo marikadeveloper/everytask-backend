@@ -57,6 +57,7 @@ model Task {
   userId         String
   impact         TASK_IMPACT
   checklistItems ChecklistItem[]
+  statusHistory  StatusUpdate[]
   category       Category?       @relation(fields: [categoryId], references: [id])
   user           User            @relation(fields: [userId], references: [id])
 
@@ -77,6 +78,16 @@ model ChecklistItem {
   order     Int
   taskId    String
   task      Task    @relation(fields: [taskId], references: [id])
+
+  @@index([taskId]) // add index for taskId
+}
+
+model StatusUpdate {
+  id        String      @id @default(uuid())
+  status    TASK_STATUS
+  updatedAt DateTime    @default(now())
+  taskId    String
+  task      Task        @relation(fields: [taskId], references: [id])
 
   @@index([taskId]) // add index for taskId
 }

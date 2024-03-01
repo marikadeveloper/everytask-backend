@@ -1,6 +1,9 @@
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import config from './config';
 import {
   createNewUser,
   resetPassword,
@@ -10,7 +13,31 @@ import {
 import { protect } from './modules/auth';
 import router from './router';
 
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Everytask Backend',
+      version: '1.0.0',
+    },
+    servers: [
+      {
+        url: `http://localhost:${config.port}`,
+      },
+      {
+        url: 'https://everytask-backend.onrender.com',
+      },
+    ],
+  },
+  apis: ['./src/router.ts'], // files containing annotations as above
+};
+
+const openapiSpecification = swaggerJsdoc(options);
+
 const app = express();
+
+// serve the OpenAPI specification
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpecification));
 
 // always put middleware before routes
 app.use(cors());

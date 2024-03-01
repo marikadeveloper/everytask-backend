@@ -29,6 +29,7 @@ Table Task {
   userId String [not null]
   impact TASK_IMPACT [not null]
   checklistItems ChecklistItem [not null]
+  statusHistory StatusUpdate [not null]
   category Category
   user User [not null]
 }
@@ -44,6 +45,14 @@ Table ChecklistItem {
   title String [not null]
   completed Boolean [not null, default: false]
   order Int [not null]
+  taskId String [not null]
+  task Task [not null]
+}
+
+Table StatusUpdate {
+  id String [pk]
+  status TASK_STATUS [not null]
+  updatedAt DateTime [default: `now()`, not null]
   taskId String [not null]
   task Task [not null]
 }
@@ -123,6 +132,8 @@ Ref: Task.categoryId > Category.id
 Ref: Task.userId > User.id
 
 Ref: ChecklistItem.taskId > Task.id
+
+Ref: StatusUpdate.taskId > Task.id
 
 Ref: Streak.userId - User.id
 
