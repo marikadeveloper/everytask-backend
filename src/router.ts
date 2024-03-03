@@ -22,7 +22,12 @@ const router = Router();
  * User
  */
 router.get('/me', me);
-router.put('/me', updateUser);
+router.put(
+  '/me',
+  body('name').optional().isString(),
+  body('dateFormat').optional().isString(),
+  updateUser,
+);
 router.delete('/me', deleteUser);
 
 /**
@@ -35,7 +40,7 @@ router.post(
   body('emoji').optional().isString(),
   body('title').exists().isString(),
   body('description').optional().isString(),
-  body('status').exists().isIn(Object.values(TaskStatus)),
+  body('status').optional().isIn(Object.values(TaskStatus)),
   body('dueDate').exists().isString(),
   body('categoryId').optional().isString(),
   body('impact').exists().isIn(Object.values(TaskImpact)),

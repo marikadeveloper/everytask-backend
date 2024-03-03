@@ -127,7 +127,13 @@ export const updateUser = async (req, res) => {
     return;
   }
 
-  const data = removeUndefinedValuesFromPayload(req.body);
+  // the only editable fields are name and dateFormat for now
+  const { name, dateFormat } = req.body;
+
+  const data = removeUndefinedValuesFromPayload({
+    name,
+    dateFormat,
+  });
 
   const user = await prisma.user.update({
     where: {
