@@ -14,7 +14,7 @@ import {
 } from './handlers/task';
 import { deleteUser, me, updateUser } from './handlers/user';
 import { checkTaskOwnership, handleInputErrors } from './modules/middleware';
-import { TaskImpact } from './types/enums';
+import { TaskImpact, TaskStatus } from './types/enums';
 
 const router = Router();
 
@@ -35,7 +35,7 @@ router.post(
   body('emoji').optional().isString(),
   body('title').exists().isString(),
   body('description').optional().isString(),
-  body('status').exists().isIn(['TODO', 'IN_PROGRESS', 'DONE']),
+  body('status').exists().isIn(Object.values(TaskStatus)),
   body('dueDate').exists().isString(),
   body('categoryId').optional().isString(),
   body('impact').exists().isIn(Object.values(TaskImpact)),
@@ -47,7 +47,7 @@ router.put(
   body('emoji').optional().isString(),
   body('title').optional().isString(),
   body('description').optional().isString(),
-  body('status').optional().isIn(['TODO', 'IN_PROGRESS', 'DONE']),
+  body('status').optional().isIn(Object.values(TaskStatus)),
   body('dueDate').optional().isString(),
   body('categoryId').optional().isString(),
   body('impact').optional().isIn(Object.values(TaskImpact)),
