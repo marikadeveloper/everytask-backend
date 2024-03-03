@@ -129,18 +129,18 @@ Enum CHALLENGE_TYPE {
 
 Ref: Task.categoryId > Category.id
 
-Ref: Task.userId > User.id
+Ref: Task.userId > User.id [delete: Cascade]
 
-Ref: ChecklistItem.taskId > Task.id
+Ref: ChecklistItem.taskId > Task.id [delete: Cascade]
 
-Ref: StatusUpdate.taskId > Task.id
+Ref: StatusUpdate.taskId > Task.id [delete: Cascade]
 
-Ref: Streak.userId - User.id
+Ref: Streak.userId - User.id [delete: Cascade]
 
-Ref: UserBadge.userId > User.id
+Ref: UserBadge.userId > User.id [delete: Cascade]
 
 Ref: UserBadge.badgeId > Badge.id
 
 Ref: UserChallenge.challengeId > Challenge.id
 
-Ref: UserChallenge.userId > User.id
+Ref: UserChallenge.userId > User.id [delete: Cascade]

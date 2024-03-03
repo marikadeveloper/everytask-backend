@@ -59,7 +59,7 @@ model Task {
   checklistItems ChecklistItem[]
   statusHistory  StatusUpdate[]
   category       Category?       @relation(fields: [categoryId], references: [id])
-  user           User            @relation(fields: [userId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // @@unique([id, userId], name: "unique_task")
   @@index([userId]) // add index for userId
@@ -77,7 +77,7 @@ model ChecklistItem {
   completed Boolean @default(false)
   order     Int
   taskId    String
-  task      Task    @relation(fields: [taskId], references: [id])
+  task      Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId]) // add index for taskId
 }
@@ -87,7 +87,7 @@ model StatusUpdate {
   status    TASK_STATUS
   updatedAt DateTime    @default(now())
   taskId    String
-  task      Task        @relation(fields: [taskId], references: [id])
+  task      Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId]) // add index for taskId
 }
@@ -102,7 +102,7 @@ model Streak {
   currentStreak Int      @default(0)
   longestStreak Int      @default(0)
   userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Evaluate user actions against badge criteria.
@@ -121,7 +121,7 @@ model UserBadge {
   earnedAt DateTime @default(now())
   userId   String
   badgeId  String
-  user     User     @relation(fields: [userId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   badge    Badge    @relation(fields: [badgeId], references: [id])
 }
 
@@ -152,5 +152,5 @@ model UserChallenge {
   challengeId String
   userId      String
   challenge   Challenge @relation(fields: [challengeId], references: [id])
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

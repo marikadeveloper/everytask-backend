@@ -53,6 +53,9 @@ app.get('/', (req, res) => {
 
 app.use('/api', protect, router);
 
+/**
+ * User routes (no auth required)
+ */
 app.post('/register', createNewUser);
 app.post('/login', signIn);
 app.post('/reset-password-request', sendResetPasswordEmail);

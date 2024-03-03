@@ -12,16 +12,18 @@ import {
   getTasks,
   updateTask,
 } from './handlers/task';
-import { me } from './handlers/user';
+import { deleteUser, me, updateUser } from './handlers/user';
 import { checkTaskOwnership, handleInputErrors } from './modules/middleware';
 import { TaskImpact } from './types/enums';
 
 const router = Router();
 
 /**
- * Current logged user (not used in the frontend for now)
+ * User
  */
 router.get('/me', me);
+router.put('/me', updateUser);
+router.delete('/me', deleteUser);
 
 /**
  * Task

@@ -6,6 +6,7 @@ import {
   hashPassword,
 } from '../modules/auth';
 import { sendEmail } from '../modules/email';
+import { removeUndefinedValuesFromPayload } from '../utils/functions';
 import { okResponse, userResponse } from '../utils/response';
 
 // register a new user
@@ -117,4 +118,39 @@ export const me = async (req, res) => {
   }
 
   res.json(userResponse(req.user));
+};
+
+// update user - AUTHORIZED ROUTE
+export const updateUser = async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  const data = removeUndefinedValuesFromPayload(req.body);
+
+  const user = await prisma.user.update({
+    where: {
+      id: req.user.id,
+    },
+    data,
+  });
+
+  res.json(userResponse(user));
+};
+
+// delete user - AUTHORIZED ROUTE
+export const deleteUser = async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  await prisma.user.delete({
+    where: {
+      id: req.user.id,
+    },
+  });
+
+  res.json(okResponse());
 };
