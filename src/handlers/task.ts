@@ -2,11 +2,20 @@ import prisma from '../db';
 import { removeUndefinedValuesFromPayload } from '../utils/functions';
 import { okResponse } from '../utils/response';
 
-// Get all user's tasks
+// Get all user's tasks with their checklist items
 export const getTasks = async (req, res) => {
   const tasks = await prisma.task.findMany({
     where: {
       userId: req.user.id,
+    },
+    include: {
+      checklistItems: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 

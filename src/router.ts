@@ -33,10 +33,10 @@ router.delete('/me', deleteUser);
 /**
  * Task
  */
-router.get('/tasks', getTasks);
+router.post('/tasks', getTasks);
 router.get('/tasks/:id', getOneTask);
 router.post(
-  '/tasks',
+  '/task',
   body('emoji').optional().isString(),
   body('title').exists().isString(),
   body('description').optional().isString(),
