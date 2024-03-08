@@ -28,6 +28,7 @@ Table Task {
   categoryId String
   userId String [not null]
   impact TASK_IMPACT [not null]
+  relativeOrder Int [not null]
   checklistItems ChecklistItem [not null]
   statusHistory StatusUpdate [not null]
   category Category

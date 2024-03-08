@@ -56,6 +56,7 @@ model Task {
   categoryId     String?
   userId         String
   impact         TASK_IMPACT
+  relativeOrder  Int // order relative to other tasks in the same status
   checklistItems ChecklistItem[]
   statusHistory  StatusUpdate[]
   category       Category?       @relation(fields: [categoryId], references: [id])

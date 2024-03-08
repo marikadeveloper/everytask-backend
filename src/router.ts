@@ -56,11 +56,11 @@ router.put(
   body('dueDate').optional().isString(),
   body('categoryId').optional().isString(),
   body('impact').optional().isIn(Object.values(TaskImpact)),
+  body('relativeOrder').optional().isInt(),
   checkTaskOwnership,
   updateTask,
 );
 router.delete('/tasks/:id', checkTaskOwnership, deleteTask);
-
 /**
  * Checklist items
  */
