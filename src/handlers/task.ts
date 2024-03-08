@@ -88,32 +88,38 @@ export const createTask = async (req, res) => {
 
 // Update a task
 export const updateTask = async (req, res) => {
+  /**
+   * TODO:
+   * - update statusHistory on status change
+   * - add points to user on task completion (points amount TBD)
+   */
   const data = removeUndefinedValuesFromPayload(req.body);
 
   // handle kanban moving
   if (data.relativeOrder !== undefined) {
-    const task = await prisma.task.findUnique({
+    const originalTask = await prisma.task.findUnique({
       where: {
         id: req.params.id,
       },
     });
 
-    if (!task) {
+    if (!originalTask) {
       return res.status(404).json({
         message: 'Task not found',
       });
     }
 
-    if (task.status === data.status) {
-      const isMovingUp = data.relativeOrder < task.relativeOrder;
+    if (originalTask.status === data.status) {
+      // case 1: moving task in the same column (not changing status)
+      const isMovingUp = data.relativeOrder < originalTask.relativeOrder;
 
       const tasksToMove = await prisma.task.findMany({
         where: {
           relativeOrder: isMovingUp
-            ? { gte: data.relativeOrder }
+            ? { lte: originalTask.relativeOrder }
             : { lte: data.relativeOrder },
-          status: task.status,
-          id: { not: task.id },
+          status: originalTask.status,
+          id: { not: originalTask.id },
         },
       });
 
@@ -123,6 +129,41 @@ export const updateTask = async (req, res) => {
         },
         data: {
           relativeOrder: isMovingUp ? { increment: 1 } : { decrement: 1 },
+        },
+      });
+    } else {
+      // case 2: moving task to another column (changing status)
+      // in the old column, move all tasks with higher relative order one position up (index--)
+      const tasksToMoveUp = await prisma.task.findMany({
+        where: {
+          relativeOrder: { gt: originalTask.relativeOrder },
+          status: originalTask.status,
+        },
+      });
+
+      await prisma.task.updateMany({
+        where: {
+          id: { in: tasksToMoveUp.map((t) => t.id) },
+        },
+        data: {
+          relativeOrder: { decrement: 1 },
+        },
+      });
+
+      // in the new column, move all tasks with higher or equal relative order one position down (index++)
+      const tasksToMoveDown = await prisma.task.findMany({
+        where: {
+          relativeOrder: { gte: data.relativeOrder },
+          status: data.status,
+        },
+      });
+
+      await prisma.task.updateMany({
+        where: {
+          id: { in: tasksToMoveDown.map((t) => t.id) },
+        },
+        data: {
+          relativeOrder: { increment: 1 },
         },
       });
     }
