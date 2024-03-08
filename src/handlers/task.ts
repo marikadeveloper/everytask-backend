@@ -89,26 +89,32 @@ export const createTask = async (req, res) => {
 // Update a task
 export const updateTask = async (req, res) => {
   /**
-   * TODO:
+   * TODO: refactor to use a transaction (https://www.prisma.io/docs/concepts/components/prisma-client/transactions#transactions)
+   */
+
+  /**
+   * Update task is composed of:
+   * - handling kanban moving (relativeOrder is in the payload)
    * - update statusHistory on status change
-   * - add points to user on task completion (points amount TBD)
+   * - TODO: add points to user on task completion (points amount TBD) - do not allocate points if task was already completed in the past
    */
   const data = removeUndefinedValuesFromPayload(req.body);
 
-  // handle kanban moving
-  if (data.relativeOrder !== undefined) {
-    const originalTask = await prisma.task.findUnique({
-      where: {
-        id: req.params.id,
-      },
+  // Retrieve original task
+  const originalTask = await prisma.task.findUnique({
+    where: {
+      id: req.params.id,
+    },
+  });
+
+  if (!originalTask) {
+    return res.status(404).json({
+      message: 'Task not found',
     });
+  }
 
-    if (!originalTask) {
-      return res.status(404).json({
-        message: 'Task not found',
-      });
-    }
-
+  // Handle kanban moving
+  if (data.relativeOrder !== undefined) {
     if (originalTask.status === data.status) {
       // case 1: moving task in the same column (not changing status)
       const isMovingUp = data.relativeOrder < originalTask.relativeOrder;
@@ -167,6 +173,16 @@ export const updateTask = async (req, res) => {
         },
       });
     }
+  }
+
+  // Update status history if status changed
+  if (data.status) {
+    await prisma.statusUpdate.create({
+      data: {
+        status: data.status,
+        taskId: originalTask.id,
+      },
+    });
   }
 
   const task = await prisma.task.update({
