@@ -89,13 +89,8 @@ export const resetPassword = async (req, res) => {
     return;
   }
 
-  let user;
-  if (req.user) {
-    user = req.user;
-  } else {
-    // get user from token
-    user = decodeJWT(req.body.token);
-  }
+  // get user from token
+  const user = decodeJWT(req.body.token);
 
   if (!user) {
     res.status(401).json({ message: 'Unauthorized' });
@@ -167,6 +162,43 @@ export const deleteUser = async (req, res) => {
   await prisma.user.delete({
     where: {
       id: req.user.id,
+    },
+  });
+
+  res.json(okResponse());
+};
+
+export const changePassword = async (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  // check if oldPassword is correct
+  const user = await prisma.user.findUnique({
+    where: {
+      id: req.user.id,
+    },
+  });
+
+  const isValid = await comparePasswords(req.body.oldPassword, user.password);
+
+  if (!isValid) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  if (req.body.password !== req.body.passwordConfirmation) {
+    res.status(400).json({ message: 'Passwords do not match' });
+    return;
+  }
+
+  await prisma.user.update({
+    where: {
+      id: req.user.id,
+    },
+    data: {
+      password: await hashPassword(req.body.password),
     },
   });
 
