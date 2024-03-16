@@ -32,7 +32,7 @@ router.delete('/me', deleteUser);
 router.post(
   '/change-password',
   body('oldPassword').exists().isString(),
-  body('newPassword').exists().isString(),
+  body('password').exists().isString(),
   body('passwordConfirmation').exists().isString(),
   changePassword,
 );
