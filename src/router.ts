@@ -12,7 +12,7 @@ import {
   getTasks,
   updateTask,
 } from './handlers/task';
-import { deleteUser, me, updateUser } from './handlers/user';
+import { changePassword, deleteUser, me, updateUser } from './handlers/user';
 import { checkTaskOwnership, handleInputErrors } from './modules/middleware';
 import { TaskImpact, TaskStatus } from './types/enums';
 
@@ -29,6 +29,13 @@ router.put(
   updateUser,
 );
 router.delete('/me', deleteUser);
+router.post(
+  '/change-password',
+  body('oldPassword').exists().isString(),
+  body('newPassword').exists().isString(),
+  body('passwordConfirmation').exists().isString(),
+  changePassword,
+);
 
 /**
  * Task
