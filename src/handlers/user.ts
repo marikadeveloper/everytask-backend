@@ -89,8 +89,13 @@ export const resetPassword = async (req, res) => {
     return;
   }
 
-  // get user from token
-  const user = decodeJWT(req.body.token);
+  let user;
+  if (req.user) {
+    user = req.user;
+  } else {
+    // get user from token
+    user = decodeJWT(req.body.token);
+  }
 
   if (!user) {
     res.status(401).json({ message: 'Unauthorized' });
@@ -117,7 +122,14 @@ export const me = async (req, res) => {
     return;
   }
 
-  res.json(userResponse(req.user));
+  // get user from db
+  const user = await prisma.user.findUnique({
+    where: {
+      id: req.user.id,
+    },
+  });
+
+  res.json(userResponse(user));
 };
 
 // update user - AUTHORIZED ROUTE

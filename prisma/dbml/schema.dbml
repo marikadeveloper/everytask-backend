@@ -29,6 +29,7 @@ Table Task {
   userId String [not null]
   impact TASK_IMPACT [not null]
   relativeOrder Int [not null]
+  firstCompletedAt DateTime
   checklistItems ChecklistItem [not null]
   statusHistory StatusUpdate [not null]
   category Category
@@ -69,10 +70,10 @@ Table Streak {
 
 Table Badge {
   id String [pk]
+  code String [unique, not null]
   name String [not null]
   description String [not null]
-  criteria Json [not null]
-  icon String [not null]
+  icon String
   userBadges UserBadge [not null]
 }
 

@@ -60,6 +60,12 @@ export const getOneTask = async (req, res) => {
 
 // Create a task
 export const createTask = async (req, res) => {
+  /**
+   * Create task composed of:
+   * - calculate relative order
+   * - create task
+   * - TODO: heck if any related badge should be awarded
+   */
   // calculate relative order, that is the order of the last task that has the same status + 1
   const relativeOrder = await prisma.task.count({
     where: {
