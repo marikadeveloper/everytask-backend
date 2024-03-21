@@ -19,6 +19,13 @@ export const createNewUser = async (req, res, next) => {
       },
     });
 
+    // create TaskCounter for the new user
+    prisma.taskCounter.create({
+      data: {
+        userId: user.id,
+      },
+    });
+
     res.json(userResponse(user));
   } catch (e) {
     e.type = 'input';

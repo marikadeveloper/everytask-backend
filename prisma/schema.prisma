@@ -30,6 +30,8 @@ model User {
   streak         Streak?
   userChallenges UserChallenge[]
   userBadges     UserBadge[]
+  taskCounter    TaskCounter?
+  taskDailyStats TaskDailyStat[]
 }
 
 enum TASK_STATUS {
@@ -99,19 +101,19 @@ model StatusUpdate {
 // If a task isn't completed, reset the currentStreak to 0.
 // Update the longestStreak if the currentStreak surpasses it.
 model Streak {
-  id            String   @id @default(uuid())
-  startDate     DateTime @default(now())
-  currentStreak Int      @default(0)
-  longestStreak Int      @default(0)
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  startDate DateTime @default(now())
+  updatedAt DateTime @default(now())
+  current   Int      @default(0)
+  longest   Int      @default(0)
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Evaluate user actions against badge criteria.
 // If criteria are met, create a record in the UserBadge table linking the user to the earned badge.
 model Badge {
-  id          String      @id @default(uuid())
-  code        String      @unique
+  code        String      @id @default(uuid())
   name        String
   description String
   icon        String?
@@ -126,7 +128,44 @@ model UserBadge {
   userId   String
   badgeId  String
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badge    Badge    @relation(fields: [badgeId], references: [id])
+  badge    Badge    @relation(fields: [badgeId], references: [code])
+
+  @@unique([userId, badgeId])
+}
+
+model TaskCounter {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  // I need updatedAt to reset some of the counters daily
+  updatedAt           DateTime @default(now())
+  // (reset daily)
+  // today's tasks 
+  completedToday      Int      @default(0) // task master badge
+  // (do not reset)
+  completedAfterTenPm Int      @default(0) // night owl badge
+  completedBeforeNoon Int      @default(0) // early bird badge
+  completedOnWeekend  Int      @default(0) // weekend warrior badge
+  completedTiny       Int      @default(0) // small wins matter badge
+  categorized         Int      @default(0) // master organizer badge
+  completed           Int      @default(0)
+  total               Int      @default(0)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// this model is just to show the daily stats of a user in the My Journey page
+model TaskDailyStat {
+  id         String @id @default(uuid())
+  date       String @unique
+  created    Int    @default(0)
+  completed  Int    @default(0)
+  inProgress Int    @default(0)
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // combination of userId and date should be unique
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
 }
 
 enum CHALLENGE_TYPE {
