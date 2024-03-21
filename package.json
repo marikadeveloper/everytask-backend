@@ -20,6 +20,9 @@
   },
   "dependencies": {
     "@prisma/client": "^5.11.0",
+    "@sentry/node": "^7.107.0",
+    "@sentry/profiling-node": "^7.107.0",
+    "@sentry/vite-plugin": "^2.16.0",
     "@types/jest": "^29.5.12",
     "@types/supertest": "^6.0.2",
     "bcrypt": "^5.1.1",
