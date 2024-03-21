@@ -61,6 +61,8 @@ app.post('/login', signIn);
 app.post('/reset-password-request', sendResetPasswordEmail);
 app.post('/reset-password', resetPassword);
 
+// app.post('/import-badges', importBadges);
+
 app.use((err, req, res, next) => {
   if (err.type === 'auth') {
     res.status(401).json({

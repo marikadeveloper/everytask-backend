@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "TaskDailyStat" ADD COLUMN     "created" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "deleted" INTEGER NOT NULL DEFAULT 0;
