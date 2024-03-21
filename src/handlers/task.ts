@@ -91,17 +91,21 @@ export const createTask = async (req, res) => {
 
       const relativeOrder = lastTask ? lastTask.relativeOrder + 1 : 0;
 
+      const optionalData = removeUndefinedValuesFromPayload({
+        emoji: req.body.emoji,
+        description: req.body.description,
+        categoryId: req.body.categoryId,
+      });
+
       // Create task
       const task = await prisma.task.create({
         data: {
           userId: req.user.id,
-          emoji: req.body.emoji,
           title: req.body.title,
-          description: req.body.description,
           dueDate: req.body.dueDate,
           impact: req.body.impact,
-          categoryId: req.body.categoryId,
           relativeOrder,
+          ...optionalData,
         },
       });
 

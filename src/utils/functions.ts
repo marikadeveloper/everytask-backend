@@ -2,7 +2,10 @@ import dayjs from 'dayjs';
 
 export function removeUndefinedValuesFromPayload(payload): any {
   return Object.entries(payload).reduce((acc, [key, value]) => {
-    if (value !== undefined) {
+    const valueIsNotUndefined = value !== undefined;
+    const valueIsNotAnEmptyString =
+      typeof value === 'string' ? value.trim() !== '' : true;
+    if (valueIsNotUndefined && valueIsNotAnEmptyString) {
       acc[key] = value;
     }
     return acc;
