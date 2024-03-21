@@ -17,6 +17,7 @@ Table User {
   userBadges UserBadge [not null]
   taskCounter TaskCounter
   taskDailyStats TaskDailyStat [not null]
+  categories Category [not null]
 }
 
 Table Task {
@@ -42,6 +43,8 @@ Table Category {
   id String [pk]
   name String [not null]
   tasks Task [not null]
+  userId String [not null]
+  user User
 }
 
 Table ChecklistItem {
@@ -167,6 +170,8 @@ Enum CHALLENGE_TYPE {
 Ref: Task.categoryId > Category.id
 
 Ref: Task.userId > User.id [delete: Cascade]
+
+Ref: Category.userId > User.id
 
 Ref: ChecklistItem.taskId > Task.id [delete: Cascade]
 

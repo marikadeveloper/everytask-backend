@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  updateCategory,
+} from './handlers/category';
+import {
   createChecklistItem,
   deleteChecklistItem,
   updateChecklistItem,
@@ -28,7 +34,6 @@ router.put(
   body('dateFormat').optional().isString(),
   updateUser,
 );
-router.delete('/me', deleteUser);
 router.post(
   '/change-password',
   body('oldPassword').exists().isString(),
@@ -36,6 +41,7 @@ router.post(
   body('passwordConfirmation').exists().isString(),
   changePassword,
 );
+router.delete('/me', deleteUser);
 
 /**
  * Task
@@ -89,11 +95,28 @@ router.put(
 );
 router.delete(
   '/checklist-items/:id',
-  body('taskId').exists().isString(),
   handleInputErrors,
   checkTaskOwnership,
   deleteChecklistItem,
 );
+
+/**
+ * Categories
+ */
+router.get('/categories', getCategories);
+router.post(
+  '/categories',
+  body('name').exists().isString(),
+  handleInputErrors,
+  createCategory,
+);
+router.put(
+  '/categories/:id',
+  body('name').exists().isString(),
+  handleInputErrors,
+  updateCategory,
+);
+router.delete('/categories/:id', deleteCategory);
 
 router.use((err, req, res, next) => {
   if (err.type === 'auth') {

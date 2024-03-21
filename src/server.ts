@@ -12,6 +12,7 @@ import {
 } from './handlers/user';
 import { protect } from './modules/auth';
 import router from './router';
+import { importBadges } from './utils/badge';
 
 const options = {
   definition: {
@@ -61,7 +62,7 @@ app.post('/login', signIn);
 app.post('/reset-password-request', sendResetPasswordEmail);
 app.post('/reset-password', resetPassword);
 
-// app.post('/import-badges', importBadges);
+app.post('/import-badges', importBadges);
 
 app.use((err, req, res, next) => {
   if (err.type === 'auth') {
