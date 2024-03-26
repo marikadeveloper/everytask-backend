@@ -1,4 +1,5 @@
 import { createJWT } from '../modules/auth';
+import { levels } from './level';
 
 // Generic responses
 export function okResponse() {
@@ -14,7 +15,7 @@ export function userResponse(user) {
       name: user.name,
       dateFormat: user.dateFormat,
       points: user.points,
-      level: user.level,
+      level: levels[user.level],
     },
     token: createJWT(user),
   };
