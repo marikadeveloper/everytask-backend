@@ -1,4 +1,4 @@
-import { TASK_STATUS } from '@prisma/client';
+import { TASK_IMPACT, TASK_STATUS } from '@prisma/client';
 import prisma from '../db';
 import {
   onTaskCreated,
@@ -21,12 +21,62 @@ const taskExternalFieldsToInclude = {
   },
 };
 
+const getTasksFilters = (query) => {
+  const filters: {
+    status?: TASK_STATUS;
+    categoryId?: { in: string[] };
+    OR?: Array<{
+      [key: string]: {
+        contains: string;
+        mode: 'insensitive';
+      };
+    }>;
+    impact?: TASK_IMPACT;
+  } = {};
+
+  if (query.status) {
+    filters.status = TASK_STATUS[query.status];
+  }
+
+  if (query.categoryIds?.length) {
+    filters.categoryId = Array.isArray(query.categoryIds)
+      ? { in: query.categoryIds }
+      : { in: [query.categoryIds] };
+  }
+
+  if (query.containsText) {
+    filters.OR = [
+      {
+        title: {
+          contains: query.containsText,
+          mode: 'insensitive',
+        },
+      },
+      {
+        description: {
+          contains: query.containsText,
+          mode: 'insensitive',
+        },
+      },
+    ];
+  }
+
+  if (query.impact) {
+    filters.impact = TASK_IMPACT[query.impact];
+  }
+
+  return filters;
+};
+
 // Get all user's tasks with their checklist items
 export const getTasks = async (req, res) => {
+  const filters = getTasksFilters(req.body);
+
   // return tasks sorted by their relative order
   const tasks = await prisma.task.findMany({
     where: {
       userId: req.user.id,
+      ...filters,
     },
     orderBy: {
       relativeOrder: 'asc',
@@ -132,6 +182,7 @@ export const updateTask = async (req, res) => {
   const data = removeUndefinedValuesFromPayload(req.body);
   let badges: string[] = [];
   let pointsAwarded = 0;
+  let levelUp = null;
 
   try {
     const result = await prisma.$transaction(async (prisma) => {
@@ -167,16 +218,21 @@ export const updateTask = async (req, res) => {
 
       // Handle status change to award badges and points
       if (data.status) {
-        const { badgesCodes, points } = await onTaskStatusUpdated({
+        const {
+          badgesCodes,
+          points,
+          levelUp: newLevel,
+        } = await onTaskStatusUpdated({
           originalTask,
           newStatus: data.status,
         });
 
         badges = badgesCodes;
         pointsAwarded = points;
+        levelUp = newLevel;
       }
 
-      return { task, badges, pointsAwarded };
+      return { task, badges, pointsAwarded, levelUp };
     });
 
     res.json({

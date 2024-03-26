@@ -222,7 +222,7 @@ async function updateUserPoints({ userId, points }) {
   });
 
   // update user points
-  const updatedUser = await prisma.user.update({
+  let updatedUser = await prisma.user.update({
     where: { id: userId },
     data: {
       points: { increment: points },
@@ -235,7 +235,7 @@ async function updateUserPoints({ userId, points }) {
   );
 
   if (gainedLevel) {
-    await prisma.user.update({
+    updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         level: gainedLevel.id,
@@ -243,7 +243,7 @@ async function updateUserPoints({ userId, points }) {
     });
   }
 
-  return updatedUser;
+  return { updatedUser, levelUp: gainedLevel };
 }
 
 export async function onTaskCreated(task): Promise<string[]> {
@@ -285,9 +285,11 @@ export async function onTaskStatusUpdated({
 }): Promise<{
   badgesCodes: string[];
   points: number;
+  levelUp?: { id: number; name: string; points: number };
 }> {
   let badgesCodes: string[] = [];
   let pointsAwarded = 0;
+  let levelUp = null;
   const userId = originalTask.userId;
 
   // 0. update status history
@@ -334,7 +336,14 @@ export async function onTaskStatusUpdated({
   if (newStatus === TASK_STATUS.DONE) {
     pointsAwarded = pointsToAwardOnTaskCompletion(originalTask.impact);
     if (pointsAwarded) {
-      await updateUserPoints({ userId, points: pointsAwarded });
+      const { levelUp: newLevel } = await updateUserPoints({
+        userId,
+        points: pointsAwarded,
+      });
+
+      if (newLevel) {
+        levelUp = newLevel;
+      }
     }
   }
 
@@ -343,7 +352,7 @@ export async function onTaskStatusUpdated({
     await updateUserStreak({ userId });
   }
 
-  return { badgesCodes, points: pointsAwarded };
+  return { badgesCodes, points: pointsAwarded, levelUp };
 }
 
 export async function onTaskOrderUpdated({ originalTask, data }) {
