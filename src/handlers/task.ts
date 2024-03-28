@@ -1,4 +1,4 @@
-import { TASK_IMPACT, TASK_STATUS } from '@prisma/client';
+import { Prisma, TASK_IMPACT, TASK_STATUS } from '@prisma/client';
 import prisma from '../db';
 import {
   onTaskCreated,
@@ -12,7 +12,11 @@ import {
 import { okResponse } from '../utils/response';
 
 const taskExternalFieldsToInclude = {
-  checklistItems: true,
+  checklistItems: {
+    orderBy: {
+      order: Prisma.SortOrder.asc,
+    },
+  },
   category: {
     select: {
       id: true,
@@ -79,7 +83,7 @@ export const getTasks = async (req, res) => {
       ...filters,
     },
     orderBy: {
-      relativeOrder: 'asc',
+      relativeOrder: Prisma.SortOrder.asc,
     },
     include: taskExternalFieldsToInclude,
   });
@@ -100,7 +104,7 @@ export const getOneTask = async (req, res) => {
       ...taskExternalFieldsToInclude,
       statusHistory: {
         orderBy: {
-          updatedAt: 'desc',
+          updatedAt: Prisma.SortOrder.desc,
         },
       },
     },
@@ -135,7 +139,7 @@ export const createTask = async (req, res) => {
           status: TASK_STATUS.TODO,
         },
         orderBy: {
-          relativeOrder: 'desc',
+          relativeOrder: Prisma.SortOrder.desc,
         },
       });
 

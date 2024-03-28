@@ -12,6 +12,21 @@ import {
   updateChecklistItem,
 } from './handlers/checklist-item';
 import {
+  getMyAverageCompletionTimeByImpact,
+  getMyBadges,
+  getMyCompletionRateByImpact,
+  getMyFastestTaskCompletion,
+  getMyMostBusyHoursAndDays,
+  getMyMostTasksCompletedInSingleDay,
+  getMyStreak,
+  getMyTaskCompletionCalendar,
+  getMyTaskStatsOverTime,
+  getMyTasksByCategory,
+  getMyTasksByImpact,
+  getMyTasksByStatus,
+  getMyWorkloadDistribution,
+} from './handlers/stats';
+import {
   createTask,
   deleteTask,
   getOneTask,
@@ -117,6 +132,47 @@ router.put(
   updateCategory,
 );
 router.delete('/categories/:id', deleteCategory);
+
+/**
+ * Stats
+ */
+router.get('/my-fastest-task-completion', getMyFastestTaskCompletion);
+router.get('/my-most-productive-day', getMyMostTasksCompletedInSingleDay);
+router.post(
+  '/my-tasks-by-status',
+  body('computationPeriodStart').optional().isString(),
+  body('computationPeriodEnd').optional().isString(),
+  getMyTasksByStatus,
+);
+router.post(
+  '/my-tasks-by-impact',
+  body('computationPeriodStart').optional().isString(),
+  body('computationPeriodEnd').optional().isString(),
+  getMyTasksByImpact,
+);
+router.post(
+  '/my-tasks-by-category',
+  body('computationPeriodStart').optional().isString(),
+  body('computationPeriodEnd').optional().isString(),
+  getMyTasksByCategory,
+);
+router.get('/my-workload-distribution', getMyWorkloadDistribution);
+router.get('/my-completion-rate-by-impact', getMyCompletionRateByImpact);
+router.get('/my-task-completion-calendar', getMyTaskCompletionCalendar);
+router.get('/my-most-busy-times', getMyMostBusyHoursAndDays);
+router.get(
+  '/my-average-completion-times-by-impact',
+  getMyAverageCompletionTimeByImpact,
+);
+router.post(
+  '/my-tasks-overtime',
+  body('computationPeriodStart').optional().isString(),
+  body('computationPeriodEnd').optional().isString(),
+  getMyTaskStatsOverTime,
+);
+// Gamification stats
+router.get('/my-badges', getMyBadges);
+router.get('/my-streak', getMyStreak);
 
 router.use((err, req, res, next) => {
   if (err.type === 'auth') {
