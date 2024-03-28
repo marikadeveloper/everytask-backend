@@ -24,7 +24,6 @@ import {
   getMyTasksByCategory,
   getMyTasksByImpact,
   getMyTasksByStatus,
-  getMyWorkloadDistribution,
 } from './handlers/stats';
 import {
   createTask,
@@ -156,7 +155,6 @@ router.post(
   body('computationPeriodEnd').optional().isString(),
   getMyTasksByCategory,
 );
-router.get('/my-workload-distribution', getMyWorkloadDistribution);
 router.get('/my-completion-rate-by-impact', getMyCompletionRateByImpact);
 router.get('/my-task-completion-calendar', getMyTaskCompletionCalendar);
 router.get('/my-most-busy-times', getMyMostBusyHoursAndDays);

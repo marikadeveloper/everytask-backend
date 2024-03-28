@@ -284,53 +284,6 @@ export const getMyTasksByCategory = async (req, res) => {
   res.json({ data: { categoryCount, categoryPercentage } });
 };
 
-// Workload distribution - Scatter plot of due dates of tasks to visualize workload distribution over time
-// frontend: scatter plot
-/**
- * return example:
- * {
-    "workload": [
-      {
-        "dueDate": "2024-03-30",
-        "tasks": 1
-      }
-    ]
-  }
- */
-export const getMyWorkloadDistribution = async (req, res) => {
-  if (!req.user) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return;
-  }
-
-  const tasks = await prisma.task.findMany({
-    where: {
-      userId: req.user.id,
-      status: {
-        not: 'DONE',
-      },
-    },
-    select: {
-      dueDate: true,
-    },
-  });
-
-  const workload = tasks.reduce((acc, task) => {
-    const dueDate = dayjs(task.dueDate).format('YYYY-MM-DD');
-
-    acc[dueDate] = acc[dueDate] ? acc[dueDate] + 1 : 1;
-
-    return acc;
-  }, {});
-
-  const workloadArray = Object.keys(workload).map((date) => ({
-    dueDate: date,
-    tasks: workload[date],
-  }));
-
-  res.json({ data: workloadArray });
-};
-
 // Current streak
 // frontend: simple number
 /**
@@ -542,6 +495,9 @@ export const getMyTaskCompletionCalendar = async (req, res) => {
       date: true,
       completed: true,
     },
+    orderBy: {
+      date: 'asc',
+    },
   });
 
   const taskCompletionCalendar = dailyStats.map((stat) => ({
@@ -549,7 +505,12 @@ export const getMyTaskCompletionCalendar = async (req, res) => {
     value: stat.completed,
   }));
 
-  res.json({ data: taskCompletionCalendar });
+  const from = dayjs(dailyStats[0].date).startOf('month').format('YYYY-MM-DD');
+  const to = dayjs(dailyStats[dailyStats.length - 1].date)
+    .endOf('month')
+    .format('YYYY-MM-DD');
+
+  res.json({ data: { calendar: taskCompletionCalendar, from, to } });
 };
 
 // Most busy hours and days - show the frequency of task completions on different days of the week or hours of the day
