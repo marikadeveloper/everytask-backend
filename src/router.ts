@@ -14,13 +14,11 @@ import {
 import {
   getMyAverageCompletionTimeByImpact,
   getMyBadges,
-  getMyCompletionRateByImpact,
   getMyFastestTaskCompletion,
   getMyMostBusyHoursAndDays,
   getMyMostTasksCompletedInSingleDay,
   getMyStreak,
   getMyTaskCompletionCalendar,
-  getMyTaskStatsOverTime,
   getMyTasksByCategory,
   getMyTasksByImpact,
   getMyTasksByStatus,
@@ -155,18 +153,11 @@ router.post(
   body('computationPeriodEnd').optional().isString(),
   getMyTasksByCategory,
 );
-router.get('/my-completion-rate-by-impact', getMyCompletionRateByImpact);
 router.get('/my-task-completion-calendar', getMyTaskCompletionCalendar);
 router.get('/my-most-busy-times', getMyMostBusyHoursAndDays);
 router.get(
   '/my-average-completion-times-by-impact',
   getMyAverageCompletionTimeByImpact,
-);
-router.post(
-  '/my-tasks-overtime',
-  body('computationPeriodStart').optional().isString(),
-  body('computationPeriodEnd').optional().isString(),
-  getMyTaskStatsOverTime,
 );
 // Gamification stats
 router.get('/my-badges', getMyBadges);

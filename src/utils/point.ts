@@ -14,12 +14,3 @@ export function pointsToAwardOnTaskCompletion(impact: TASK_IMPACT): number {
       return 0;
   }
 }
-
-/**
- * **Points for Task Completion:**
-
-- **Low Effort Low Impact (LELI):** 10 points (Simple and minimal impact tasks)
-- **Low Effort High Impact (LEHI):** 20 points (Easy tasks with significant outcomes)
-- **High Effort Low Impact (HELI):** 30 points (Time-consuming tasks with minimal impact)
-- **High Effort High Impact (HEHI):** 50 points (Challenging tasks with significant outcomes)
- */

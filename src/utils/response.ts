@@ -1,5 +1,5 @@
 import { createJWT } from '../modules/auth';
-import { levels } from './level';
+import { levels, pointsToTheNextLevel } from './level';
 
 // Generic responses
 export function okResponse() {
@@ -8,6 +8,8 @@ export function okResponse() {
 
 // User responses
 export function userResponse(user) {
+  const pointsToNextLevel = pointsToTheNextLevel(user.points);
+
   return {
     user: {
       id: user.id,
@@ -15,7 +17,7 @@ export function userResponse(user) {
       name: user.name,
       dateFormat: user.dateFormat,
       points: user.points,
-      level: levels[user.level],
+      level: { ...levels[user.level], pointsToNextLevel },
     },
     token: createJWT(user),
   };

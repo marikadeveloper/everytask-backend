@@ -6,3 +6,11 @@ export const levels: { id: number; name: string; points: number }[] = [
   { id: 5, name: 'Time Lord', points: 2000 },
   { id: 6, name: 'Legend', points: 5000 },
 ];
+
+export function pointsToTheNextLevel(currentPoints: number): number {
+  const nextLevel = levels.find((level) => level.points > currentPoints);
+  if (!nextLevel) {
+    return 0;
+  }
+  return nextLevel.points - currentPoints;
+}
