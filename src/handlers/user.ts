@@ -131,6 +131,11 @@ export const me = async (req, res) => {
     },
   });
 
+  if (!user) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
   res.json(userResponse(user));
 };
 
