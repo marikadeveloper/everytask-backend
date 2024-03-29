@@ -1,4 +1,6 @@
-export const levels: { id: number; name: string; points: number }[] = [
+import { Level } from '../types/level';
+
+export const levels: Level[] = [
   { id: 1, name: 'Newbie', points: 0 },
   { id: 2, name: 'Apprentice', points: 100 },
   { id: 3, name: 'Procrastinator Slayer', points: 500 },

@@ -1,11 +1,20 @@
-import { TASK_IMPACT, TASK_STATUS } from '@prisma/client';
+import { Streak, TASK_IMPACT, TASK_STATUS, TaskCounter } from '@prisma/client';
 import dayjs from 'dayjs';
 import prisma from '../db';
-import { badgeCompletion, badgesToAwardOnTaskCompletion } from './badge';
+import { BadgeCode } from '../types/enums';
+import { Level } from '../types/level';
+import {
+  badgesToAwardOnCategorization,
+  badgesToAwardOnLevelUp,
+  badgesToAwardOnStreakUpdate,
+  badgesToAwardOnTaskCompletion,
+} from './badge';
 import { levels } from './level';
 import { pointsToAwardOnTaskCompletion } from './point';
 
-async function updateStatusHistory({ taskId, status }) {
+const DATABASE_DATE_FORMAT = 'YYYY-MM-DD';
+
+export async function updateStatusHistory({ taskId, status }) {
   await prisma.statusUpdate.create({
     data: {
       status,
@@ -13,85 +22,71 @@ async function updateStatusHistory({ taskId, status }) {
     },
   });
 }
-/**
- * A function that updates the user's daily stats
- * @param userId  - the user id
- * @param action - the action that was performed on the task (create, statusUpdate)
- * @param task - the task that was created or updated
- * @param data - additional data that is needed for the action
- * @returns nothing
- */
-async function updateTaskDailyStat({ userId, action, task, data = undefined }) {
-  const now = dayjs().startOf('day').format('YYYY-MM-DD');
+
+export async function updateTaskDailyStat({
+  userId,
+  action,
+  task,
+  data = undefined,
+}) {
+  const now = dayjs().startOf('day').format(DATABASE_DATE_FORMAT);
+  let createData: any = { userId: task.userId, date: now };
+  let updateData: any = {};
 
   if (action === 'create') {
-    await prisma.taskDailyStat.upsert({
-      create: {
-        userId: task.userId,
-        date: now,
-        created: 1,
-      },
-      update: {
-        created: { increment: 1 },
-      },
-      where: { userId_date: { userId, date: now } },
-    });
+    createData.created = 1;
+    updateData.created = { increment: 1 };
   } else if (action === 'statusUpdate') {
-    await prisma.taskDailyStat.upsert({
-      create: {
-        userId: task.userId,
-        date: now,
-        inProgress: data.newStatus === TASK_STATUS.IN_PROGRESS ? 1 : 0,
-        completed: data.newStatus === TASK_STATUS.DONE ? 1 : 0,
-      },
-      update: {
-        // in progress must be incremented if the new status is in progress and the old status is not in progress
-        // in progress must be decremented if the new status is not in progress and the old status is in progress
-        inProgress:
-          data.newStatus === TASK_STATUS.IN_PROGRESS
-            ? { increment: 1 }
-            : task.status === TASK_STATUS.IN_PROGRESS &&
-              data.newStatus !== TASK_STATUS.IN_PROGRESS
-            ? { decrement: 1 }
-            : undefined,
-        // completed must be incremented if the new status is completed and the old status is not completed
-        // completed must be decremented if the new status is not completed and the old status is completed
-        completed:
-          data.newStatus === TASK_STATUS.DONE
-            ? { increment: 1 }
-            : task.status === TASK_STATUS.DONE &&
-              data.newStatus !== TASK_STATUS.DONE
-            ? { decrement: 1 }
-            : undefined,
-      },
-      where: { userId_date: { userId, date: now } },
-    });
+    createData = {
+      ...createData,
+      inProgress: data.newStatus === TASK_STATUS.IN_PROGRESS ? 1 : 0,
+      completed: data.newStatus === TASK_STATUS.DONE ? 1 : 0,
+    };
+    updateData = {
+      inProgress: getIncrementDecrementStatusCounter(
+        data.newStatus,
+        TASK_STATUS.IN_PROGRESS,
+        task.status,
+      ),
+      completed: getIncrementDecrementStatusCounter(
+        data.newStatus,
+        TASK_STATUS.DONE,
+        task.status,
+      ),
+    };
   }
+
+  await prisma.taskDailyStat.upsert({
+    create: createData,
+    update: updateData,
+    where: { userId_date: { userId, date: now } },
+  });
 }
 
-/**
- * A function that resets the daily task counters
- * @param userId - the user id
- * @returns updated TaskCounter
- */
+function getIncrementDecrementStatusCounter(
+  newStatus,
+  targetStatus,
+  oldStatus,
+) {
+  if (newStatus === targetStatus) return { increment: 1 };
+  if (oldStatus === targetStatus && newStatus !== targetStatus)
+    return { decrement: 1 };
+  return undefined;
+}
+
 async function resetDailyTaskCounters({ userId }) {
-  const updatedTaskCounter = await prisma.taskCounter.update({
+  return await prisma.taskCounter.update({
     where: { userId },
     data: { completedToday: 0 },
   });
-
-  return updatedTaskCounter;
 }
 
-/**
- * A function that updates the user's TaskCounter
- * @param userId  - the user id
- * @param action - the action that was performed on the task (create, statusUpdate)
- * @param task - the task that was created or updated
- * @param data - additional data that is needed for the action
- * @returns updated TaskCounter
- */
-async function updateTaskCounter({ userId, action, task, data = undefined }) {
+export async function updateTaskCounter({
+  userId,
+  action,
+  task,
+  data = undefined,
+}) {
   // find the TaskCounter for the current user
   let taskCounter = await prisma.taskCounter.findUnique({
     where: { userId: task.userId },
@@ -118,66 +113,68 @@ async function updateTaskCounter({ userId, action, task, data = undefined }) {
   // update the counter
   if (action === 'create') {
     // total++, if task has category, categorized++
-    taskCounter = await prisma.taskCounter.update({
-      where: { userId },
-      data: {
-        total: { increment: 1 },
-        categorized: task.categoryId ? { increment: 1 } : undefined,
-      },
-    });
-  } else if (action === 'statusUpdate') {
-    /**
-     * completedToday           Int      @default(0) // task master badge
-      completedBeforeNoon      Int      @default(0) // early bird badge
-      completedAfterTenPm      Int      @default(0) // night owl badge
-      completedOnWeekend       Int      @default(0) // weekend warrior badge
-      completedTiny            Int      @default(0) // small wins matter badge
-      completed                Int      @default(0)
-     */
-    if (data.newStatus === TASK_STATUS.DONE) {
-      const completedAt = dayjs();
-      const completedBeforeNoon = completedAt.isBefore(
-        completedAt.startOf('day').add(12, 'hour'),
-      );
-      const completedAfterTenPm = completedAt.isAfter(
-        completedAt.startOf('day').add(22, 'hour'),
-      );
-      const completedOnWeekend =
-        completedAt.day() === 0 || completedAt.day() === 6;
-      const completedTiny = task.impact === TASK_IMPACT.LOW_IMPACT_LOW_EFFORT;
-
-      taskCounter = await prisma.taskCounter.update({
-        where: { userId },
-        data: {
-          completedToday: { increment: 1 },
-          completed: { increment: 1 },
-          completedBeforeNoon: completedBeforeNoon
-            ? { increment: 1 }
-            : undefined,
-          completedAfterTenPm: completedAfterTenPm
-            ? { increment: 1 }
-            : undefined,
-          completedOnWeekend: completedOnWeekend ? { increment: 1 } : undefined,
-          completedTiny: completedTiny ? { increment: 1 } : undefined,
-        },
-      });
-    }
+    taskCounter = await incrementTaskCounter(task, userId);
+  } else if (action === 'statusUpdate' && data.newStatus === TASK_STATUS.DONE) {
+    taskCounter = await updateTaskCounterOnCompletion(task, userId, data);
   }
 
   return taskCounter;
 }
 
-/**
- * A function that updates the user's streaks on task completion
- * @param userId - the user id
- * @returns the updated UserStreak
- */
-async function updateUserStreak({ userId }) {
+async function incrementTaskCounter(task, userId) {
+  return await prisma.taskCounter.update({
+    where: { userId },
+    data: {
+      total: { increment: 1 },
+      categorized: task.categoryId ? { increment: 1 } : undefined,
+    },
+  });
+}
+
+async function updateTaskCounterOnCompletion(task, userId, data) {
+  const {
+    completedBeforeNoon,
+    completedAfterTenPm,
+    completedOnWeekend,
+    completedTiny,
+  } = getCompletionMetrics(task);
+  return await prisma.taskCounter.update({
+    where: { userId },
+    data: {
+      completedToday: { increment: 1 },
+      completed: { increment: 1 },
+      completedBeforeNoon: completedBeforeNoon ? { increment: 1 } : undefined,
+      completedAfterTenPm: completedAfterTenPm ? { increment: 1 } : undefined,
+      completedOnWeekend: completedOnWeekend ? { increment: 1 } : undefined,
+      completedTiny: completedTiny ? { increment: 1 } : undefined,
+    },
+  });
+}
+
+function getCompletionMetrics(task) {
+  const completedAt = dayjs();
+  return {
+    completedBeforeNoon: completedAt.isBefore(
+      completedAt.startOf('day').add(12, 'hour'),
+    ),
+    completedAfterTenPm: completedAt.isAfter(
+      completedAt.startOf('day').add(22, 'hour'),
+    ),
+    completedOnWeekend: completedAt.day() === 0 || completedAt.day() === 6,
+    completedTiny: task.impact === TASK_IMPACT.LOW_IMPACT_LOW_EFFORT,
+  };
+}
+
+export async function updateUserStreak({ userId }): Promise<Streak> {
   const userStreak = await prisma.streak.findUnique({
     where: { userId },
   });
-  let updatedUserStreak;
+  const now = dayjs().toDate();
+  const today = dayjs().startOf('day');
+  const lastUpdated = dayjs(userStreak?.updatedAt ?? 0).startOf('day');
+  const lastUpdatedYesterday = today.subtract(1, 'day').isSame(lastUpdated);
 
+  let updatedUserStreak;
   if (!userStreak) {
     updatedUserStreak = await prisma.streak.create({
       data: {
@@ -186,40 +183,32 @@ async function updateUserStreak({ userId }) {
         longest: 1,
       },
     });
+  } else if (lastUpdatedYesterday) {
+    updatedUserStreak = await prisma.streak.update({
+      where: { userId },
+      data: {
+        current: { increment: 1 },
+        longest: Math.max(userStreak.current + 1, userStreak.longest),
+        updatedAt: now,
+      },
+    });
   } else {
-    const now = new Date();
-    const today = dayjs().startOf('day');
-    const lastUpdated = dayjs(userStreak.updatedAt).startOf('day');
-    const lastUpdatedYesterday = today.subtract(1, 'day').isSame(lastUpdated);
-    if (lastUpdatedYesterday) {
-      updatedUserStreak = await prisma.streak.update({
-        where: { userId },
-        data: {
-          current: { increment: 1 },
-          longest: Math.max(userStreak.current + 1, userStreak.longest),
-          updatedAt: now,
-        },
-      });
-    } else {
-      updatedUserStreak = await prisma.streak.update({
-        where: { userId },
-        data: {
-          current: 1,
-          updatedAt: now,
-        },
-      });
-    }
+    updatedUserStreak = await prisma.streak.update({
+      where: { userId },
+      data: {
+        current: 1,
+        updatedAt: now,
+      },
+    });
   }
-
-  // TODO: award badges if needed
-  // - streak-starter -> Quando nella tabella UserStreak c'è un record con `streak` uguale a 3.
-  // - streak-superstar -> Quando nella tabella UserStreak c'è un record con `streak` uguale a 30
-  // - persistence-pays-off -> Quando nella tabella UserStreak c'è un record con `streak` uguale a 7.
 
   return updatedUserStreak;
 }
 
-async function updateUserPoints({ userId, points }) {
+async function updateUserPoints({
+  userId,
+  points,
+}): Promise<Level | undefined> {
   // get current user level
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -240,7 +229,7 @@ async function updateUserPoints({ userId, points }) {
   );
 
   if (gainedLevel) {
-    updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
       data: {
         level: gainedLevel.id,
@@ -248,91 +237,91 @@ async function updateUserPoints({ userId, points }) {
     });
   }
 
-  // TODO: award badges if needed:
-  // - level-up-legend -> Quando nella tabella User c'è un record con `level` uguale a 6.
-
-  return { updatedUser, levelUp: gainedLevel };
+  return gainedLevel;
 }
 
-export async function onTaskCreated(task): Promise<string[]> {
-  // 1. if not present, add an entry for TaskDailyStat for the current user
-  // 2. update TaskCounter for the current user - if updatedAt is not today, reset the counter
-  // 3. award badges if needed
-  const userId = task.userId;
-  let badgesCodes: string[] = [];
-
-  // 1. update TaskDailyStat for the current user
-  await updateTaskDailyStat({ userId, action: 'create', task });
-
-  // 2. update TaskCounter for the current user
-  const taskCounter = await updateTaskCounter({
-    userId,
-    action: 'create',
-    task,
+export async function awardBadgesOnTaskCreate(
+  taskCounter: TaskCounter,
+): Promise<BadgeCode[]> {
+  return await badgesToAwardOnCategorization({
+    taskCounter,
   });
+}
 
-  // 3. award badges if needed
-  // master organizer
-  if (badgeCompletion['master-organizer'](taskCounter)) {
-    await prisma.userBadge.create({
-      data: {
-        userId,
-        badgeId: 'master-organizer',
-      },
-      include: { badge: true },
+export async function awardPointsOnTaskComplete({
+  taskImpact,
+  userId,
+}): Promise<{
+  levelUp: Level | null;
+  pointsAwarded: number;
+}> {
+  const pointsAwarded = pointsToAwardOnTaskCompletion[taskImpact];
+  let levelUp = null;
+  if (pointsAwarded) {
+    levelUp = await updateUserPoints({
+      userId,
+      points: pointsAwarded,
     });
-    badgesCodes.push('master-organizer');
   }
 
-  return badgesCodes;
+  return { levelUp, pointsAwarded };
 }
 
-export async function onTaskStatusUpdated({
+export async function awardBadgesOnTaskUpdate({
   originalTask,
-  newStatus,
-}): Promise<{
-  badgesCodes: string[];
-  points: number;
-  levelUp?: { id: number; name: string; points: number };
-}> {
-  let badgesCodes: string[] = [];
-  let pointsAwarded = 0;
-  let levelUp = null;
+  updates,
+  taskCounter,
+  updatedUserStreak,
+  levelUp,
+}): Promise<BadgeCode[]> {
   const userId = originalTask.userId;
 
-  // 0. update status history
-  await updateStatusHistory({ taskId: originalTask.id, status: newStatus });
+  if (!updates.status && !updates.categoryId) return [];
 
-  // 1. if not present, add an entry for TaskDailyStat for the current user
-  await updateTaskDailyStat({
-    userId,
-    action: 'statusUpdate',
-    task: originalTask,
-    data: { newStatus },
-  });
+  let badgesCodes: BadgeCode[] = [];
+  let badgesCodesFromStreak: BadgeCode[] = [];
+  let badgesCodesFromLevelUp: BadgeCode[] = [];
+  let badgesCodesFromCategorization: BadgeCode[] = [];
+  let badgesCodesFromStatusUpdate: BadgeCode[] = [];
 
-  // 2. update TaskCounter for the current user
-  const taskCounter = await updateTaskCounter({
-    userId,
-    action: 'statusUpdate',
-    task: originalTask,
-    data: { newStatus },
-  });
-
-  // 3. award badges if needed
-  if (badgeCompletion({ taskCounter })['master-organizer']()) {
-    // status independent
-    badgesCodes.push('master-organizer');
-  }
-
-  if (newStatus === TASK_STATUS.DONE) {
-    const badgesToAward = await badgesToAwardOnTaskCompletion({
+  if (updates.status === TASK_STATUS.DONE) {
+    // get badges from status update
+    badgesCodesFromStatusUpdate = await badgesToAwardOnTaskCompletion({
       taskCounter,
       task: originalTask,
     });
-    badgesCodes = badgesCodes.concat(badgesToAward);
+
+    if (updatedUserStreak) {
+      // get badges from streak update
+      badgesCodesFromStreak = await badgesToAwardOnStreakUpdate({
+        streak: updatedUserStreak,
+      });
+    }
+
+    if (levelUp) {
+      // get badges from level up
+      badgesCodesFromLevelUp = await badgesToAwardOnLevelUp({
+        userId,
+      });
+    }
   }
 
+  if (updates.categoryId) {
+    // get badges from categorization
+    badgesCodesFromCategorization = await badgesToAwardOnCategorization({
+      taskCounter,
+    });
+  }
+
+  // merge all badges
+  badgesCodes = [
+    ...badgesCodesFromStreak,
+    ...badgesCodesFromLevelUp,
+    ...badgesCodesFromCategorization,
+    ...badgesCodesFromStatusUpdate,
+  ];
+
+  // insert badges into db
   if (badgesCodes.length) {
     await prisma.userBadge.createMany({
       data: badgesCodes.map((code) => ({
@@ -343,27 +332,7 @@ export async function onTaskStatusUpdated({
     });
   }
 
-  // 4. award points if needed
-  if (newStatus === TASK_STATUS.DONE) {
-    pointsAwarded = pointsToAwardOnTaskCompletion(originalTask.impact);
-    if (pointsAwarded) {
-      const { levelUp: newLevel } = await updateUserPoints({
-        userId,
-        points: pointsAwarded,
-      });
-
-      if (newLevel) {
-        levelUp = newLevel;
-      }
-    }
-  }
-
-  // 5. update streaks
-  if (newStatus === TASK_STATUS.DONE) {
-    await updateUserStreak({ userId });
-  }
-
-  return { badgesCodes, points: pointsAwarded, levelUp };
+  return badgesCodes;
 }
 
 export async function onTaskOrderUpdated({ originalTask, data }) {

@@ -1,9 +1,14 @@
 import { Prisma, TASK_IMPACT, TASK_STATUS } from '@prisma/client';
 import prisma from '../db';
 import {
-  onTaskCreated,
+  awardBadgesOnTaskCreate,
+  awardBadgesOnTaskUpdate,
+  awardPointsOnTaskComplete,
   onTaskOrderUpdated,
-  onTaskStatusUpdated,
+  updateStatusHistory,
+  updateTaskCounter,
+  updateTaskDailyStat,
+  updateUserStreak,
 } from '../utils/callbacks';
 import {
   isValidDate,
@@ -132,10 +137,11 @@ export const createTask = async (req, res) => {
 
   try {
     const result = await prisma.$transaction(async (prisma) => {
+      const userId = req.user.id;
       // Calculate relative order, that is the order of the last task that has the same status + 1
       const lastTask = await prisma.task.findFirst({
         where: {
-          userId: req.user.id,
+          userId,
           status: TASK_STATUS.TODO,
         },
         orderBy: {
@@ -154,7 +160,7 @@ export const createTask = async (req, res) => {
       // Create task
       const task = await prisma.task.create({
         data: {
-          userId: req.user.id,
+          userId,
           title: req.body.title,
           dueDate: req.body.dueDate,
           impact: req.body.impact,
@@ -163,9 +169,15 @@ export const createTask = async (req, res) => {
         },
       });
 
-      // Update count of tasks created today and tasks created in total (non-blocking)
-      // This operation should also be included in the transaction if it affects the database
-      const badgesCodes: string[] = await onTaskCreated(task);
+      await updateTaskDailyStat({ userId, action: 'create', task });
+
+      const taskCounter = await updateTaskCounter({
+        userId,
+        action: 'create',
+        task,
+      });
+
+      const badgesCodes = await awardBadgesOnTaskCreate(taskCounter);
 
       return { task, badges: badgesCodes };
     });
@@ -184,12 +196,10 @@ export const createTask = async (req, res) => {
 // Update a task
 export const updateTask = async (req, res) => {
   const data = removeUndefinedValuesFromPayload(req.body);
-  let badges: string[] = [];
-  let pointsAwarded = 0;
-  let levelUp = null;
 
   try {
     const result = await prisma.$transaction(async (prisma) => {
+      const userId = req.user.id;
       // Retrieve original task
       const originalTask = await prisma.task.findUnique({
         where: {
@@ -209,32 +219,61 @@ export const updateTask = async (req, res) => {
       const task = await prisma.task.update({
         where: {
           id: req.params.id,
-          userId: req.user.id,
+          userId,
         },
         data,
         include: taskExternalFieldsToInclude,
       });
 
-      // Handle kanban moving
+      // Handle kanban moving (only on task update)
       if (data.relativeOrder !== undefined) {
         await onTaskOrderUpdated({ originalTask, data });
       }
 
-      // Handle status change to award badges and points
-      if (data.status) {
-        const {
-          badgesCodes,
-          points,
-          levelUp: newLevel,
-        } = await onTaskStatusUpdated({
-          originalTask,
-          newStatus: data.status,
-        });
+      // update status history (only on task update)
+      await updateStatusHistory({
+        taskId: originalTask.id,
+        status: data.status,
+      });
 
-        badges = badgesCodes;
-        pointsAwarded = points;
-        levelUp = newLevel;
+      // if not present, add an entry for TaskDailyStat for the current user
+      await updateTaskDailyStat({
+        userId,
+        action: 'statusUpdate',
+        task: originalTask,
+        data: { newStatus: data.status },
+      });
+
+      // update TaskCounter for the current user
+      const taskCounter = await updateTaskCounter({
+        userId,
+        action: 'statusUpdate',
+        task: originalTask,
+        data: { newStatus: data.status },
+      });
+
+      let updatedUserStreak;
+      let pointsAwarded = 0;
+      let levelUp;
+      if (data.status === TASK_STATUS.DONE) {
+        // update streaks
+        updatedUserStreak = await updateUserStreak({ userId });
+        // award points
+        const pointsResult = await awardPointsOnTaskComplete({
+          taskImpact: task.impact,
+          userId,
+        });
+        pointsAwarded = pointsResult.pointsAwarded;
+        levelUp = pointsResult.levelUp;
       }
+
+      const badges = await awardBadgesOnTaskUpdate({
+        originalTask,
+        updates: data,
+        taskCounter,
+        updatedUserStreak,
+        levelUp,
+      });
 
       return { task, badges, pointsAwarded, levelUp };
     });
