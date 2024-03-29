@@ -1,6 +1,14 @@
-import { Task, TaskCounter, User } from '@prisma/client';
+import {
+  Streak,
+  TASK_IMPACT,
+  Task,
+  TaskCounter,
+  User,
+  UserBadge,
+} from '@prisma/client';
 import dayjs from 'dayjs';
 import prisma from '../db';
+import { getMaxLevel } from './level';
 
 export async function importBadges(req, res, next) {
   const badges: { code: string; name: string; description: string }[] = [
@@ -113,42 +121,53 @@ export async function importBadges(req, res, next) {
   res.json({ message: 'Badges imported' });
 }
 
-export const badgeCompletion: { [code: string]: (...args) => boolean } = {
-  'ice-breaker': (taskCounter: TaskCounter) => taskCounter.completed === 1,
-  'early-bird': (taskCounter: TaskCounter) =>
-    taskCounter.completedBeforeNoon === 5,
-  'night-owl': (taskCounter: TaskCounter) =>
-    taskCounter.completedAfterTenPm === 5,
-  'busy-bee': (taskCounter: TaskCounter) => taskCounter.completedToday === 5,
-  'over-achiever': (taskCounter: TaskCounter) =>
-    taskCounter.completedToday === 10,
-  'streak-starter': (todo: User) => false,
-  'persistence-pays-off': (todo: User) => false,
-  'weekend-warrior': (taskCounter: TaskCounter) =>
-    taskCounter.completedOnWeekend === 5,
-  'small-wins-matter': (taskCounter: TaskCounter) =>
-    taskCounter.completedTiny === 5,
-  'epic-achiever': (todo) => false,
-  overcomer: (task: Task) =>
-    dayjs(task.createdAt).isBefore(dayjs().subtract(1, 'week')),
-  'early-completion': (task: Task) => {
-    // check if it was HIGH_IMPACT_HIGH_EFFORT and completed significantly ahead of the deadline
-    if (task.impact === 'HIGH_IMPACT_HIGH_EFFORT') {
-      const dueDate = dayjs(task.dueDate);
-      const completedDate = dayjs();
-      const daysAhead = dueDate.diff(completedDate, 'day');
-      return daysAhead > 5;
-    } else {
-      return false;
-    }
-  },
-  'master-organizer': (taskCounter: TaskCounter) =>
-    taskCounter.categorized === 10,
-  'streak-superstar': (todo: User) => false,
-  'level-up-legend': (todo: User) => false,
-  'hundo-hustler': (taskCounter: TaskCounter) => taskCounter.completed === 100,
-  'task-titan': (taskCounter: TaskCounter) => taskCounter.completed === 500,
-  'all-star-achiever': (todo: User) => false,
+const TOT_BADGES_COUNT = 20;
+
+export const badgeCompletion = (input: {
+  taskCounter?: TaskCounter;
+  task?: Task;
+  streak?: Streak;
+  user?: User;
+  userBadges?: UserBadge[];
+}): {
+  [code: string]: () => boolean;
+} => {
+  const { taskCounter, task, streak, user, userBadges } = input;
+
+  return {
+    'ice-breaker': () => taskCounter?.completed === 1,
+    'early-bird': () => taskCounter?.completedBeforeNoon === 5,
+    'night-owl': () => taskCounter?.completedAfterTenPm === 5,
+    'busy-bee': () => taskCounter?.completedToday === 5,
+    'over-achiever': () => taskCounter?.completedToday === 10,
+    'weekend-warrior': () => taskCounter?.completedOnWeekend === 5,
+    'small-wins-matter': () =>
+      taskCounter?.completedTiny === 5 &&
+      task?.impact === TASK_IMPACT.LOW_IMPACT_LOW_EFFORT,
+    overcomer: () =>
+      dayjs(task?.createdAt).isBefore(dayjs().subtract(1, 'week')),
+    'early-completion': () => {
+      if (!task) return false;
+      // check if it was HIGH_IMPACT_HIGH_EFFORT and completed significantly ahead of the deadline
+      if (task.impact === 'HIGH_IMPACT_HIGH_EFFORT') {
+        const dueDate = dayjs(task.dueDate);
+        const completedDate = dayjs();
+        const daysAhead = dueDate.diff(completedDate, 'day');
+        return daysAhead > 5;
+      } else {
+        return false;
+      }
+    },
+    'master-organizer': () => taskCounter?.categorized === 10,
+    'hundo-hustler': () => taskCounter?.completed === 100,
+    'task-titan': () => taskCounter?.completed === 500,
+    'streak-starter': () => streak?.current === 3,
+    'streak-superstar': () => streak?.current === 30,
+    'persistence-pays-off': () => streak?.current === 7,
+    'epic-achiever': () => task?.impact === TASK_IMPACT.HIGH_IMPACT_HIGH_EFFORT,
+    'level-up-legend': () => user?.level === getMaxLevel(),
+    'all-star-achiever': () => userBadges?.length === TOT_BADGES_COUNT, // TODO
+  };
 };
 
 const badgesAwardableOnTaskCompletion = [
@@ -159,17 +178,22 @@ const badgesAwardableOnTaskCompletion = [
   'over-achiever',
   'weekend-warrior',
   'small-wins-matter',
-  'overcomer',
-  'early-completion',
+  'overcomer', // Task input required
+  'early-completion', // Task input required
   'hundo-hustler',
   'task-titan',
 ];
-export function badgesToAwardOnTaskCompletion(
-  taskCounter: TaskCounter,
-): string[] {
+export function badgesToAwardOnTaskCompletion(input: {
+  taskCounter: TaskCounter;
+  task: Task;
+}): string[] {
   const badgesToAward: string[] = [];
+  const badgeCompletionLogic = badgeCompletion(input);
+
+  // TODO: do not award badges that have already been awarded
+
   for (const badgeCode of badgesAwardableOnTaskCompletion) {
-    if (badgeCompletion[badgeCode](taskCounter)) {
+    if (badgeCompletionLogic[badgeCode]()) {
       badgesToAward.push(badgeCode);
     }
   }

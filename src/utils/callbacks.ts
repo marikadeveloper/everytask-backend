@@ -211,6 +211,11 @@ async function updateUserStreak({ userId }) {
     }
   }
 
+  // TODO: award badges if needed
+  // - streak-starter -> Quando nella tabella UserStreak c'è un record con `streak` uguale a 3.
+  // - streak-superstar -> Quando nella tabella UserStreak c'è un record con `streak` uguale a 30
+  // - persistence-pays-off -> Quando nella tabella UserStreak c'è un record con `streak` uguale a 7.
+
   return updatedUserStreak;
 }
 
@@ -242,6 +247,9 @@ async function updateUserPoints({ userId, points }) {
       },
     });
   }
+
+  // TODO: award badges if needed:
+  // - level-up-legend -> Quando nella tabella User c'è un record con `level` uguale a 6.
 
   return { updatedUser, levelUp: gainedLevel };
 }
@@ -312,13 +320,16 @@ export async function onTaskStatusUpdated({
   });
 
   // 3. award badges if needed
-  if (badgeCompletion['master-organizer'](taskCounter)) {
+  if (badgeCompletion({ taskCounter })['master-organizer']()) {
     // status independent
     badgesCodes.push('master-organizer');
   }
 
   if (newStatus === TASK_STATUS.DONE) {
-    const badgesToAward = await badgesToAwardOnTaskCompletion(taskCounter);
+    const badgesToAward = await badgesToAwardOnTaskCompletion({
+      taskCounter,
+      task: originalTask,
+    });
     badgesCodes = badgesCodes.concat(badgesToAward);
   }
 

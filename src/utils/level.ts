@@ -7,6 +7,10 @@ export const levels: { id: number; name: string; points: number }[] = [
   { id: 6, name: 'Legend', points: 5000 },
 ];
 
+export function getMaxLevel(): number {
+  return levels[levels.length - 1].id;
+}
+
 export function pointsToTheNextLevel(currentPoints: number): number {
   const nextLevel = levels.find((level) => level.points > currentPoints);
   if (!nextLevel) {
