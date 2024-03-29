@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import cors from 'cors';
 import express from 'express';
+import { body } from 'express-validator';
 import morgan from 'morgan';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
@@ -85,7 +86,13 @@ app.use('/api', protect, router);
 /**
  * User routes (no auth required)
  */
-app.post('/register', createNewUser);
+app.post(
+  '/register',
+  body('email').exists().isString(),
+  body('name').optional().isString(),
+  body('password').exists().isString(),
+  createNewUser,
+);
 app.post('/login', signIn);
 app.post('/reset-password-request', sendResetPasswordEmail);
 app.post('/reset-password', resetPassword);
