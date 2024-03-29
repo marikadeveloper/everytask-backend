@@ -1,4 +1,10 @@
-import { Streak, TASK_IMPACT, TASK_STATUS, TaskCounter } from '@prisma/client';
+import {
+  Streak,
+  TASK_IMPACT,
+  TASK_STATUS,
+  TaskCounter,
+  UserBadge,
+} from '@prisma/client';
 import dayjs from 'dayjs';
 import prisma from '../db';
 import { BadgeCode } from '../types/enums';
@@ -242,9 +248,30 @@ async function updateUserPoints({
 
 export async function awardBadgesOnTaskCreate(
   taskCounter: TaskCounter,
-): Promise<BadgeCode[]> {
-  return await badgesToAwardOnCategorization({
+): Promise<UserBadge[]> {
+  const userId = taskCounter.userId;
+  const badgesCodes = await badgesToAwardOnCategorization({
     taskCounter,
+  });
+
+  // insert badges into db
+  if (badgesCodes.length) {
+    await prisma.userBadge.createMany({
+      data: badgesCodes.map((code) => ({
+        userId,
+        badgeId: code,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  return await prisma.userBadge.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      badge: true,
+    },
   });
 }
 
@@ -273,7 +300,7 @@ export async function awardBadgesOnTaskUpdate({
   taskCounter,
   updatedUserStreak,
   levelUp,
-}): Promise<BadgeCode[]> {
+}): Promise<UserBadge[]> {
   const userId = originalTask.userId;
 
   if (!updates.status && !updates.categoryId) return [];
@@ -332,7 +359,14 @@ export async function awardBadgesOnTaskUpdate({
     });
   }
 
-  return badgesCodes;
+  return await prisma.userBadge.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      badge: true,
+    },
+  });
 }
 
 export async function onTaskOrderUpdated({ originalTask, data }) {

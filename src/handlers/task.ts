@@ -177,9 +177,9 @@ export const createTask = async (req, res) => {
         task,
       });
 
-      const badgesCodes = await awardBadgesOnTaskCreate(taskCounter);
+      const badges = await awardBadgesOnTaskCreate(taskCounter);
 
-      return { task, badges: badgesCodes };
+      return { task, badges };
     });
 
     res.json({
