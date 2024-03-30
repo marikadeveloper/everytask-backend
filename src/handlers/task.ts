@@ -186,6 +186,7 @@ export const createTask = async (req, res) => {
       data: result,
     });
   } catch (error) {
+    console.error(error);
     // Handle errors
     res
       .status(500)
@@ -225,32 +226,41 @@ export const updateTask = async (req, res) => {
         include: taskExternalFieldsToInclude,
       });
 
+      // Get taskcounter
+      let taskCounter = await prisma.taskCounter.findUnique({
+        where: {
+          userId,
+        },
+      });
+
       // Handle kanban moving (only on task update)
       if (data.relativeOrder !== undefined) {
         await onTaskOrderUpdated({ originalTask, data });
       }
 
-      // update status history (only on task update)
-      await updateStatusHistory({
-        taskId: originalTask.id,
-        status: data.status,
-      });
+      if (data.status) {
+        // update status history (only on task update)
+        await updateStatusHistory({
+          taskId: originalTask.id,
+          status: data.status,
+        });
 
-      // if not present, add an entry for TaskDailyStat for the current user
-      await updateTaskDailyStat({
-        userId,
-        action: 'statusUpdate',
-        task: originalTask,
-        data: { newStatus: data.status },
-      });
+        // if not present, add an entry for TaskDailyStat for the current user
+        await updateTaskDailyStat({
+          userId,
+          action: 'statusUpdate',
+          task: originalTask,
+          data: { newStatus: data.status },
+        });
 
-      // update TaskCounter for the current user
-      const taskCounter = await updateTaskCounter({
-        userId,
-        action: 'statusUpdate',
-        task: originalTask,
-        data: { newStatus: data.status },
-      });
+        // update TaskCounter for the current user
+        taskCounter = await updateTaskCounter({
+          userId,
+          action: 'statusUpdate',
+          task: originalTask,
+          data: { newStatus: data.status },
+        });
+      }
 
       let updatedUserStreak;
       let pointsAwarded = 0;
@@ -282,11 +292,14 @@ export const updateTask = async (req, res) => {
       data: result,
     });
   } catch (error) {
+    console.error(error);
+
     if (error.message === 'Task not found') {
       return res.status(404).json({
         message: 'Task not found',
       });
     }
+
     // Handle other errors
     res
       .status(500)

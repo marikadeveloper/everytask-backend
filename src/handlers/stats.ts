@@ -453,6 +453,11 @@ export const getMyTaskCompletionCalendar = async (req, res) => {
     },
   });
 
+  if (!dailyStats.length) {
+    res.json({ data: { calendar: [], from: '', to: '' } });
+    return;
+  }
+
   const taskCompletionCalendar = dailyStats.map((stat) => ({
     day: dayjs(stat.date).format('YYYY-MM-DD'),
     value: stat.completed,
