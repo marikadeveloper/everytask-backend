@@ -311,6 +311,8 @@ export async function awardBadgesOnTaskUpdate({
   let badgesCodesFromCategorization: BadgeCode[] = [];
   let badgesCodesFromStatusUpdate: BadgeCode[] = [];
 
+  console.log(updates);
+
   if (updates.status === TASK_STATUS.DONE) {
     // get badges from status update
     badgesCodesFromStatusUpdate = await badgesToAwardOnTaskCompletion({
@@ -362,6 +364,7 @@ export async function awardBadgesOnTaskUpdate({
   return await prisma.userBadge.findMany({
     where: {
       userId,
+      badgeId: { in: badgesCodes },
     },
     include: {
       badge: true,
