@@ -36,7 +36,7 @@ export async function updateTaskDailyStat({
   data = undefined,
 }) {
   const now = dayjs().startOf('day').format(DATABASE_DATE_FORMAT);
-  let createData: any = { userId: task.userId, date: now };
+  let createData: any = { userId, date: now };
   let updateData: any = {};
 
   if (action === 'create') {
@@ -70,7 +70,7 @@ export async function updateTaskDailyStat({
   if (foundTaskDailyStat) {
     // update the TaskDailyStat
     return await prisma.taskDailyStat.update({
-      where: { userId_date: { userId, date: now } },
+      where: { id: foundTaskDailyStat.id },
       data: updateData,
     });
   } else {
