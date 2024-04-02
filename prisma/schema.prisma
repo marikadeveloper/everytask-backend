@@ -166,7 +166,7 @@ model TaskDailyStat {
   user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // combination of userId and date should be unique
-  // @@unique([userId, date])
+  @@unique([userId, date])
   @@index([userId])
   @@index([date])
 }

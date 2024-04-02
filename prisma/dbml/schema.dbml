@@ -118,6 +118,10 @@ Table TaskDailyStat {
   inProgress Int [not null, default: 0]
   userId String [not null]
   user User [not null]
+
+  indexes {
+    (userId, date) [unique]
+  }
 }
 
 Table Challenge {
