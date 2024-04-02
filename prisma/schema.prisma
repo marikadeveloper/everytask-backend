@@ -158,7 +158,7 @@ model TaskCounter {
 // this model is just to show the daily stats of a user in the My Journey page
 model TaskDailyStat {
   id         String @id @default(uuid())
-  date       String @unique
+  date       String 
   created    Int    @default(0)
   completed  Int    @default(0)
   inProgress Int    @default(0)

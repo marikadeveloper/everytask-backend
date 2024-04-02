@@ -112,7 +112,7 @@ Table TaskCounter {
 
 Table TaskDailyStat {
   id String [pk]
-  date String [unique, not null]
+  date String [not null]
   created Int [not null, default: 0]
   completed Int [not null, default: 0]
   inProgress Int [not null, default: 0]
