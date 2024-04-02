@@ -1,4 +1,5 @@
 import { Prisma, TASK_IMPACT, TASK_STATUS } from '@prisma/client';
+import dayjs from 'dayjs';
 import prisma from '../db';
 import {
   awardBadgesOnTaskCreate,
@@ -239,11 +240,13 @@ export const updateTask = async (req, res) => {
       }
 
       if (data.status) {
-        // update status history (only on task update)
-        await updateStatusHistory({
-          taskId: originalTask.id,
-          status: data.status,
-        });
+        // update status history (only on task update, only if status has changed)
+        if (data.status !== originalTask.status) {
+          await updateStatusHistory({
+            taskId: originalTask.id,
+            status: data.status,
+          });
+        }
 
         // if not present, add an entry for TaskDailyStat for the current user
         await updateTaskDailyStat({
@@ -285,7 +288,13 @@ export const updateTask = async (req, res) => {
         levelUp,
       });
 
-      return { task, badges, pointsAwarded, levelUp };
+      return {
+        task,
+        badges,
+        pointsAwarded,
+        levelUp,
+        streak: updatedUserStreak,
+      };
     });
 
     res.json({
@@ -309,12 +318,77 @@ export const updateTask = async (req, res) => {
 
 // Delete a task
 export const deleteTask = async (req, res) => {
-  await prisma.task.delete({
+  try {
+    await prisma.task.delete({
+      where: {
+        id: req.params.id,
+        userId: req.user.id,
+      },
+    });
+
+    res.json(okResponse());
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: 'An error occurred during the deletion process',
+    });
+  }
+};
+
+// Dashboard specific query
+export const getDashboardTasks = async (req, res) => {
+  const userId = req.user.id;
+  // Get all tasks that are not done and are due today or are overdue
+  const endOfToday = dayjs().endOf('day').toISOString();
+  const dueTodayOrOverdue = await prisma.task.findMany({
     where: {
-      id: req.params.id,
-      userId: req.user.id,
+      userId,
+      status: {
+        not: TASK_STATUS.DONE,
+      },
+      dueDate: {
+        lte: endOfToday,
+      },
+    },
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 
-  res.json(okResponse());
+  // Get 5 of the next upcoming tasks not done
+  const upcomingTasks = await prisma.task.findMany({
+    where: {
+      userId,
+      status: {
+        not: TASK_STATUS.DONE,
+      },
+      dueDate: {
+        gt: endOfToday,
+      },
+    },
+    orderBy: {
+      dueDate: Prisma.SortOrder.asc,
+    },
+    take: 5,
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  res.json({
+    data: {
+      dueTodayOrOverdue,
+      upcomingTasks,
+    },
+  });
 };

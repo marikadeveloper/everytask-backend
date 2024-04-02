@@ -29,7 +29,7 @@ export const getMyBadges = async (req, res) => {
     return;
   }
 
-  const badges = await prisma.userBadge.findMany({
+  const myBadges = await prisma.userBadge.findMany({
     where: {
       userId: req.user.id,
     },
@@ -40,7 +40,9 @@ export const getMyBadges = async (req, res) => {
     },
   });
 
-  res.json({ data: badges });
+  const allBadges = await prisma.badge.findMany();
+
+  res.json({ data: { myBadges, allBadges } });
 };
 
 // Tasks by status: Number and percentage of tasks in each status category (Todo, In Progress, Done).

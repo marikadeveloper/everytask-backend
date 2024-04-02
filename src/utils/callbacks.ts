@@ -171,7 +171,9 @@ function getCompletionMetrics(task) {
   };
 }
 
-export async function updateUserStreak({ userId }): Promise<Streak> {
+export async function updateUserStreak({
+  userId,
+}): Promise<Streak | undefined> {
   const userStreak = await prisma.streak.findUnique({
     where: { userId },
   });
@@ -179,17 +181,23 @@ export async function updateUserStreak({ userId }): Promise<Streak> {
   const today = dayjs().startOf('day');
   const lastUpdated = dayjs(userStreak?.updatedAt ?? 0).startOf('day');
   const lastUpdatedYesterday = today.subtract(1, 'day').isSame(lastUpdated);
-
+  const lastUpdatedBeforeYesterday = lastUpdated.isBefore(
+    today.subtract(1, 'day'),
+  );
   let updatedUserStreak;
+
   if (!userStreak) {
+    // create streak
     updatedUserStreak = await prisma.streak.create({
       data: {
         userId,
         current: 1,
         longest: 1,
+        updatedAt: now,
       },
     });
   } else if (lastUpdatedYesterday) {
+    // increment streak
     updatedUserStreak = await prisma.streak.update({
       where: { userId },
       data: {
@@ -198,7 +206,8 @@ export async function updateUserStreak({ userId }): Promise<Streak> {
         updatedAt: now,
       },
     });
-  } else {
+  } else if (lastUpdatedBeforeYesterday) {
+    // reset streak
     updatedUserStreak = await prisma.streak.update({
       where: { userId },
       data: {
@@ -311,8 +320,6 @@ export async function awardBadgesOnTaskUpdate({
   let badgesCodesFromCategorization: BadgeCode[] = [];
   let badgesCodesFromStatusUpdate: BadgeCode[] = [];
 
-  console.log(updates);
-
   if (updates.status === TASK_STATUS.DONE) {
     // get badges from status update
     badgesCodesFromStatusUpdate = await badgesToAwardOnTaskCompletion({
@@ -380,8 +387,8 @@ export async function onTaskOrderUpdated({ originalTask, data }) {
     const tasksToMove = await prisma.task.findMany({
       where: {
         relativeOrder: isMovingUp
-          ? { lte: originalTask.relativeOrder }
-          : { lte: data.relativeOrder },
+          ? { gte: data.relativeOrder }
+          : { gte: originalTask.relativeOrder },
         status: originalTask.status,
         id: { not: originalTask.id },
       },

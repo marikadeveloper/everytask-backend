@@ -26,6 +26,7 @@ import {
 import {
   createTask,
   deleteTask,
+  getDashboardTasks,
   getOneTask,
   getTasks,
   updateTask,
@@ -85,6 +86,7 @@ router.put(
   updateTask,
 );
 router.delete('/tasks/:id', checkTaskOwnership, deleteTask);
+router.get('/dashboard-tasks', getDashboardTasks);
 /**
  * Checklist items
  */

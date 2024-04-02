@@ -46,11 +46,17 @@ export const updateChecklistItem = async (req, res) => {
 
 // delete a checklist item
 export const deleteChecklistItem = async (req, res) => {
-  await prisma.checklistItem.delete({
-    where: {
-      id: req.params.id,
-    },
-  });
+  try {
+    await prisma.checklistItem.delete({
+      where: {
+        id: req.params.id,
+      },
+    });
 
-  res.json(okResponse());
+    res.json(okResponse());
+  } catch (error) {
+    res.status(400).json({
+      error: 'Checklist item not found',
+    });
+  }
 };
