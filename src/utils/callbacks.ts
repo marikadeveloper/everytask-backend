@@ -67,11 +67,18 @@ export async function updateTaskDailyStat({
     where: { userId_date: { userId, date: now } },
   });
 
-  await prisma.taskDailyStat.upsert({
-    create: createData,
-    update: updateData,
-    where: { id: foundTaskDailyStat?.id },
-  });
+  if (foundTaskDailyStat) {
+    // update the TaskDailyStat
+    return await prisma.taskDailyStat.update({
+      where: { userId_date: { userId, date: now } },
+      data: updateData,
+    });
+  } else {
+    // create the TaskDailyStat
+    return await prisma.taskDailyStat.create({
+      data: createData,
+    });
+  }
 }
 
 function getIncrementDecrementStatusCounter(
