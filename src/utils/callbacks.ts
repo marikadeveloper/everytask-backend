@@ -64,7 +64,7 @@ export async function updateTaskDailyStat({
 
   // fetch the TaskDailyStat for the current user and date
   const foundTaskDailyStat = await prisma.taskDailyStat.findUnique({
-    where: { userId_date: { userId, date: now } },
+    where: { userId: userId, date: now },
   });
 
   if (foundTaskDailyStat) {
