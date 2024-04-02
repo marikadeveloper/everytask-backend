@@ -53,3 +53,12 @@
  *        userId: abcde
  *        impact: HIGH_IMPACT_HIGH_EFFORT
  */
+
+/**
+ * @swagger
+ * /tasks:
+ *  get:
+ *    summary: Get all user's tasks with their checklist items
+ *    tags: [Tasks]
+ *
+ */
