@@ -25,10 +25,10 @@ const options = {
     },
     servers: [
       {
-        url: `http://localhost:${config.port}`,
+        url: 'https://king-prawn-app-h2idv.ondigitalocean.app',
       },
       {
-        url: 'https://everytask-backend.onrender.com',
+        url: `http://localhost:${config.port}`,
       },
     ],
   },
