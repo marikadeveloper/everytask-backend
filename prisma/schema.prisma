@@ -75,7 +75,7 @@ model Category {
   name   String
   tasks  Task[]
   userId String
-  user   User?  @relation(fields: [userId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ChecklistItem {
