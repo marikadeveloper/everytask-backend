@@ -12,6 +12,19 @@ import { okResponse, userResponse } from '../utils/response';
 // register a new user
 export const createNewUser = async (req, res, next) => {
   try {
+    // check if password has min. 8 characters with at least one number, one uppercase and one lowercase letter
+    const passwordRegex =
+      /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+    if (!passwordRegex.test(req.body.password)) {
+      res
+        .status(400)
+        .json({
+          message:
+            'Password must have at least 8 characters with at least one number, one uppercase and one lowercase letter',
+        });
+      return;
+    }
+
     const user = await prisma.user.create({
       data: {
         email: req.body.email,
