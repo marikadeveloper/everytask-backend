@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
+import { body, param } from 'express-validator';
 import {
   createCategory,
   deleteCategory,
@@ -63,6 +63,7 @@ router.post('/tasks', getTasks);
 router.get('/tasks/:id', getOneTask);
 router.post(
   '/task',
+  body('updatedAt').exists().isString(),
   body('dueDate').exists().isString(),
   body('impact').exists().isIn(Object.values(TaskImpact)),
   body('title').exists().isString(),
@@ -74,6 +75,7 @@ router.post(
 );
 router.put(
   '/tasks/:id',
+  body('updatedAt').exists().isString(),
   body('categoryId').optional().isString(),
   body('description').optional().isString(),
   body('dueDate').optional().isString(),
@@ -86,7 +88,11 @@ router.put(
   updateTask,
 );
 router.delete('/tasks/:id', checkTaskOwnership, deleteTask);
-router.get('/dashboard-tasks', getDashboardTasks);
+router.get(
+  '/dashboard-tasks/:date',
+  param('date').exists().isString(),
+  getDashboardTasks,
+);
 /**
  * Checklist items
  */
@@ -137,24 +143,9 @@ router.delete('/categories/:id', deleteCategory);
  */
 router.get('/my-fastest-task-completion', getMyFastestTaskCompletion);
 router.get('/my-most-productive-day', getMyMostTasksCompletedInSingleDay);
-router.post(
-  '/my-tasks-by-status',
-  body('computationPeriodStart').optional().isString(),
-  body('computationPeriodEnd').optional().isString(),
-  getMyTasksByStatus,
-);
-router.post(
-  '/my-tasks-by-impact',
-  body('computationPeriodStart').optional().isString(),
-  body('computationPeriodEnd').optional().isString(),
-  getMyTasksByImpact,
-);
-router.post(
-  '/my-tasks-by-category',
-  body('computationPeriodStart').optional().isString(),
-  body('computationPeriodEnd').optional().isString(),
-  getMyTasksByCategory,
-);
+router.get('/my-tasks-by-status', getMyTasksByStatus);
+router.get('/my-tasks-by-impact', getMyTasksByImpact);
+router.get('/my-tasks-by-category', getMyTasksByCategory);
 router.get('/my-task-completion-calendar', getMyTaskCompletionCalendar);
 router.get('/my-most-busy-times', getMyMostBusyHoursAndDays);
 router.get(

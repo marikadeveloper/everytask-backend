@@ -20,22 +20,27 @@ import { pointsToAwardOnTaskCompletion } from './point';
 
 const DATABASE_DATE_FORMAT = 'YYYY-MM-DD';
 
-export async function updateStatusHistory({ taskId, status }) {
+export async function updateStatusHistory({ taskId, status, updatedAt }) {
   await prisma.statusUpdate.create({
     data: {
       status,
       taskId,
+      updatedAt,
     },
   });
 }
 
 export async function updateTaskDailyStat({
+  updatedAt,
   userId,
   action,
   task,
   data = undefined,
 }) {
-  const now = dayjs().startOf('day').format(DATABASE_DATE_FORMAT);
+  const dateWithoutTime = updatedAt.split('T')[0];
+  const now = dayjs(dateWithoutTime)
+    .startOf('day')
+    .format(DATABASE_DATE_FORMAT);
   let createData: any = { userId, date: now };
   let updateData: any = {};
 
@@ -100,6 +105,7 @@ async function resetDailyTaskCounters({ userId }) {
 }
 
 export async function updateTaskCounter({
+  updatedAt,
   userId,
   action,
   task,
@@ -115,13 +121,14 @@ export async function updateTaskCounter({
     taskCounter = await prisma.taskCounter.create({
       data: {
         userId: task.userId,
-        updatedAt: new Date(),
+        updatedAt,
       },
     });
   }
 
   // reset daily and weekly counters if needed
-  const hasBeenUpdatedBeforeToday = dayjs(taskCounter.updatedAt).isBefore(
+  const dateWithoutTime = updatedAt.split('T')[0];
+  const hasBeenUpdatedBeforeToday = dayjs(dateWithoutTime).isBefore(
     dayjs().startOf('day'),
   );
   if (hasBeenUpdatedBeforeToday) {
@@ -133,7 +140,7 @@ export async function updateTaskCounter({
     // total++, if task has category, categorized++
     taskCounter = await incrementTaskCounter(task, userId);
   } else if (action === 'statusUpdate' && data.newStatus === TASK_STATUS.DONE) {
-    taskCounter = await updateTaskCounterOnCompletion(task, userId, data);
+    taskCounter = await updateTaskCounterOnCompletion(task, userId, updatedAt);
   }
 
   return taskCounter;
@@ -149,13 +156,13 @@ async function incrementTaskCounter(task, userId) {
   });
 }
 
-async function updateTaskCounterOnCompletion(task, userId, data) {
+async function updateTaskCounterOnCompletion(task, userId, completedAt) {
   const {
     completedBeforeNoon,
     completedAfterTenPm,
     completedOnWeekend,
     completedTiny,
-  } = getCompletionMetrics(task);
+  } = getCompletionMetrics(task, completedAt);
   return await prisma.taskCounter.update({
     where: { userId },
     data: {
@@ -169,15 +176,14 @@ async function updateTaskCounterOnCompletion(task, userId, data) {
   });
 }
 
-function getCompletionMetrics(task) {
-  const completedAt = dayjs();
+function getCompletionMetrics(task, _completedAt) {
+  // shenaningans for timezone
+  const completedAtHours = +_completedAt.split('T')[1].split(':')[0];
+  const completedAtDate = _completedAt.split('T')[0];
+  const completedAt = dayjs(completedAtDate).startOf('day');
   return {
-    completedBeforeNoon: completedAt.isBefore(
-      completedAt.startOf('day').add(12, 'hour'),
-    ),
-    completedAfterTenPm: completedAt.isAfter(
-      completedAt.startOf('day').add(22, 'hour'),
-    ),
+    completedBeforeNoon: completedAtHours < 12,
+    completedAfterTenPm: completedAtHours >= 22 && completedAtHours <= 4,
     completedOnWeekend: completedAt.day() === 0 || completedAt.day() === 6,
     completedTiny: task.impact === TASK_IMPACT.LOW_IMPACT_LOW_EFFORT,
   };
@@ -185,16 +191,23 @@ function getCompletionMetrics(task) {
 
 export async function updateUserStreak({
   userId,
+  updatedAt,
 }): Promise<Streak | undefined> {
   const userStreak = await prisma.streak.findUnique({
     where: { userId },
   });
-  const now = dayjs().toDate();
-  const today = dayjs().startOf('day');
+  // updatedAt is a date like this: 2024-04-11T12:32:20.379Z
+  // const now = dayjs().toDate();
+  // const today = dayjs().startOf('day');
+  const dateWithoutTime = updatedAt.split('T')[0];
+  // userStreak.updatedAt has this format: 2024-04-11
   const lastUpdated = dayjs(userStreak?.updatedAt ?? 0).startOf('day');
-  const lastUpdatedYesterday = today.subtract(1, 'day').isSame(lastUpdated);
+  const lastUpdatedYesterday = dayjs()
+    .startOf('day')
+    .subtract(1, 'day')
+    .isSame(lastUpdated, 'day');
   const lastUpdatedBeforeYesterday = lastUpdated.isBefore(
-    today.subtract(1, 'day'),
+    dayjs().startOf('day').subtract(1, 'day'),
   );
   let updatedUserStreak;
 
@@ -205,7 +218,7 @@ export async function updateUserStreak({
         userId,
         current: 1,
         longest: 1,
-        updatedAt: now,
+        updatedAt: dateWithoutTime,
       },
     });
   } else if (lastUpdatedYesterday) {
@@ -215,7 +228,7 @@ export async function updateUserStreak({
       data: {
         current: { increment: 1 },
         longest: Math.max(userStreak.current + 1, userStreak.longest),
-        updatedAt: now,
+        updatedAt: dateWithoutTime,
       },
     });
   } else if (lastUpdatedBeforeYesterday) {
@@ -224,7 +237,7 @@ export async function updateUserStreak({
       where: { userId },
       data: {
         current: 1,
-        updatedAt: now,
+        updatedAt: dateWithoutTime,
       },
     });
   }

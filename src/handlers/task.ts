@@ -170,9 +170,15 @@ export const createTask = async (req, res) => {
         },
       });
 
-      await updateTaskDailyStat({ userId, action: 'create', task });
+      await updateTaskDailyStat({
+        updatedAt: req.body.updatedAt,
+        userId,
+        action: 'create',
+        task,
+      });
 
       const taskCounter = await updateTaskCounter({
+        updatedAt: req.body.updatedAt,
         userId,
         action: 'create',
         task,
@@ -197,7 +203,9 @@ export const createTask = async (req, res) => {
 
 // Update a task
 export const updateTask = async (req, res) => {
+  const updatedAt = req.body.updatedAt;
   const data = removeUndefinedValuesFromPayload(req.body);
+  delete data.updatedAt;
 
   try {
     const result = await prisma.$transaction(async (prisma) => {
@@ -213,8 +221,8 @@ export const updateTask = async (req, res) => {
         throw new Error('Task not found');
       }
 
-      if (data.status === TASK_STATUS.DONE && !originalTask.firstCompletedAt) {
-        data.firstCompletedAt = new Date().toISOString();
+      if (data.status === TASK_STATUS.DONE && !originalTask.completedAt) {
+        data.completedAt = updatedAt;
       }
 
       // Update task
@@ -243,6 +251,7 @@ export const updateTask = async (req, res) => {
         // update status history (only on task update, only if status has changed)
         if (data.status !== originalTask.status) {
           await updateStatusHistory({
+            updatedAt,
             taskId: originalTask.id,
             status: data.status,
           });
@@ -250,6 +259,7 @@ export const updateTask = async (req, res) => {
 
         // if not present, add an entry for TaskDailyStat for the current user
         await updateTaskDailyStat({
+          updatedAt,
           userId,
           action: 'statusUpdate',
           task: originalTask,
@@ -258,6 +268,7 @@ export const updateTask = async (req, res) => {
 
         // update TaskCounter for the current user
         taskCounter = await updateTaskCounter({
+          updatedAt,
           userId,
           action: 'statusUpdate',
           task: originalTask,
@@ -270,7 +281,10 @@ export const updateTask = async (req, res) => {
       let levelUp;
       if (data.status === TASK_STATUS.DONE) {
         // update streaks
-        updatedUserStreak = await updateUserStreak({ userId });
+        updatedUserStreak = await updateUserStreak({
+          userId,
+          updatedAt,
+        });
         // award points
         const pointsResult = await awardPointsOnTaskComplete({
           taskImpact: task.impact,
@@ -338,8 +352,11 @@ export const deleteTask = async (req, res) => {
 // Dashboard specific query
 export const getDashboardTasks = async (req, res) => {
   const userId = req.user.id;
+  const date = req.params.date.split('T')[0];
+  // date is a date like this: 2024-04-11T12:32:20.379Z
+  // end of today will be 2024-04-11T23:59:59.999Z
+  const endOfToday = dayjs(date).endOf('day').toISOString();
   // Get all tasks that are not done and are due today or are overdue
-  const endOfToday = dayjs().endOf('day').toISOString();
   const dueTodayOrOverdue = await prisma.task.findMany({
     where: {
       userId,

@@ -26,13 +26,13 @@ Table Task {
   title String [not null]
   description String
   status TASK_STATUS [not null, default: 'TODO']
-  dueDate DateTime [not null]
+  dueDate String [not null]
   createdAt DateTime [default: `now()`, not null]
   categoryId String
   userId String [not null]
   impact TASK_IMPACT [not null]
   relativeOrder Int [not null]
-  firstCompletedAt DateTime
+  completedAt String
   checklistItems ChecklistItem [not null]
   statusHistory StatusUpdate [not null]
   category Category
@@ -59,7 +59,7 @@ Table ChecklistItem {
 Table StatusUpdate {
   id String [pk]
   status TASK_STATUS [not null]
-  updatedAt DateTime [default: `now()`, not null]
+  updatedAt String
   taskId String [not null]
   task Task [not null]
 }
@@ -67,7 +67,7 @@ Table StatusUpdate {
 Table Streak {
   id String [pk]
   startDate DateTime [default: `now()`, not null]
-  updatedAt DateTime [default: `now()`, not null]
+  updatedAt String
   current Int [not null, default: 0]
   longest Int [not null, default: 0]
   userId String [unique, not null]

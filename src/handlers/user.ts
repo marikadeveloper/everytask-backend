@@ -16,20 +16,20 @@ export const createNewUser = async (req, res, next) => {
     const passwordRegex =
       /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
     if (!passwordRegex.test(req.body.password)) {
-      res
-        .status(400)
-        .json({
-          message:
-            'Password must have at least 8 characters with at least one number, one uppercase and one lowercase letter',
-        });
+      res.status(400).json({
+        message:
+          'Password must have at least 8 characters with at least one number, one uppercase and one lowercase letter',
+      });
       return;
     }
+
+    const password = hashPassword(req.body.password);
 
     const user = await prisma.user.create({
       data: {
         email: req.body.email,
         name: req.body.name,
-        password: await hashPassword(req.body.password),
+        password,
       },
     });
 

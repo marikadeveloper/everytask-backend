@@ -66,44 +66,10 @@ export const getMyTasksByStatus = async (req, res) => {
     return;
   }
 
-  let where: { userId: string; createdAt?: any } = {
-    userId: req.user.id,
-  };
-
-  const computationPeriodStart = req.body.computationPeriodStart;
-  const computationPeriodEnd = req.body.computationPeriodEnd;
-
-  if (computationPeriodEnd && computationPeriodStart) {
-    // check if dates are valid
-    if (!dayjs(computationPeriodStart).isValid()) {
-      res
-        .status(400)
-        .json({ message: 'Invalid computation period start date' });
-      return;
-    }
-
-    if (!dayjs(computationPeriodEnd).isValid()) {
-      res.status(400).json({ message: 'Invalid computation period end date' });
-      return;
-    }
-
-    // check if start date is before end date
-    if (dayjs(computationPeriodStart).isAfter(computationPeriodEnd)) {
-      res.status(400).json({ message: 'Invalid computation period' });
-      return;
-    }
-
-    where = {
-      ...where,
-      createdAt: {
-        gte: computationPeriodStart,
-        lte: computationPeriodEnd,
-      },
-    };
-  }
-
   const tasks = await prisma.task.findMany({
-    where,
+    where: {
+      userId: req.user.id,
+    },
     select: {
       status: true,
     },
@@ -142,49 +108,17 @@ export const getMyTasksByStatus = async (req, res) => {
   }
  */
 export const getMyTasksByImpact = async (req, res) => {
+  console.log('req.user', req.user);
+
   if (!req.user) {
     res.status(401).json({ message: 'Unauthorized' });
     return;
   }
 
-  let where: { userId: string; createdAt?: any } = {
-    userId: req.user.id,
-  };
-
-  const computationPeriodStart = req.body.computationPeriodStart;
-  const computationPeriodEnd = req.body.computationPeriodEnd;
-
-  if (computationPeriodEnd && computationPeriodStart) {
-    // check if dates are valid
-    if (!dayjs(computationPeriodStart).isValid()) {
-      res
-        .status(400)
-        .json({ message: 'Invalid computation period start date' });
-      return;
-    }
-
-    if (!dayjs(computationPeriodEnd).isValid()) {
-      res.status(400).json({ message: 'Invalid computation period end date' });
-      return;
-    }
-
-    // check if start date is before end date
-    if (dayjs(computationPeriodStart).isAfter(computationPeriodEnd)) {
-      res.status(400).json({ message: 'Invalid computation period' });
-      return;
-    }
-
-    where = {
-      ...where,
-      createdAt: {
-        gte: computationPeriodStart,
-        lte: computationPeriodEnd,
-      },
-    };
-  }
-
   const tasks = await prisma.task.findMany({
-    where,
+    where: {
+      userId: req.user.id,
+    },
     select: {
       impact: true,
     },
@@ -226,48 +160,19 @@ export const getMyTasksByCategory = async (req, res) => {
     return;
   }
 
-  let where: { userId: string; createdAt?: any } = {
-    userId: req.user.id,
-  };
-
-  const computationPeriodStart = req.body.computationPeriodStart;
-  const computationPeriodEnd = req.body.computationPeriodEnd;
-
-  if (computationPeriodEnd && computationPeriodStart) {
-    // check if dates are valid
-    if (!dayjs(computationPeriodStart).isValid()) {
-      res
-        .status(400)
-        .json({ message: 'Invalid computation period start date' });
-      return;
-    }
-
-    if (!dayjs(computationPeriodEnd).isValid()) {
-      res.status(400).json({ message: 'Invalid computation period end date' });
-      return;
-    }
-
-    // check if start date is before end date
-    if (dayjs(computationPeriodStart).isAfter(computationPeriodEnd)) {
-      res.status(400).json({ message: 'Invalid computation period' });
-      return;
-    }
-
-    where = {
-      ...where,
-      createdAt: {
-        gte: computationPeriodStart,
-        lte: computationPeriodEnd,
-      },
-    };
-  }
-
   const tasks = await prisma.task.findMany({
-    where,
+    where: {
+      userId: req.user.id,
+    },
     select: {
       category: true,
     },
   });
+
+  if (!tasks.length) {
+    res.json({ data: { categoryCount: {}, categoryPercentage: {} } });
+    return;
+  }
 
   const categoryCount = tasks.reduce((acc, task) => {
     acc[task.category?.name || 'uncategorized'] = acc[
@@ -335,17 +240,19 @@ export const getMyMostTasksCompletedInSingleDay = async (req, res) => {
   const tasks = await prisma.task.findMany({
     where: {
       userId: req.user.id,
-      firstCompletedAt: {
+      completedAt: {
         not: null,
       },
     },
     select: {
-      firstCompletedAt: true,
+      completedAt: true,
     },
   });
 
   const tasksByDate = tasks.reduce((acc, task) => {
-    const date = dayjs(task.firstCompletedAt).format('YYYY-MM-DD');
+    // completedAt is a string that contains the timezone of the client. keep the timezone right
+    // completedAt example: 2024-04-11T12:32:20.379Z
+    const date = task.completedAt.split('T')[0];
 
     acc[date] = acc[date] ? acc[date] + 1 : 1;
 
@@ -387,21 +294,26 @@ export const getMyFastestTaskCompletion = async (req, res) => {
   const tasks = await prisma.task.findMany({
     where: {
       userId: req.user.id,
-      status: 'DONE',
+      status: TASK_STATUS.DONE,
+      completedAt: {
+        not: null,
+      },
     },
     select: {
       title: true,
       createdAt: true,
-      firstCompletedAt: true,
+      completedAt: true,
     },
   });
 
   const fastestTask = tasks.reduce(
     (fastest, task) => {
-      const completionTime = dayjs(task.firstCompletedAt).diff(
-        task.createdAt,
-        'minutes',
-      );
+      // completedAt is a string with timezone like this: 2024-04-11T12:32:20.379Z
+      // createdAt is a date with gmt timezone
+      // convert completedAt to date with gmt timezone
+      const completedAt = dayjs(task.completedAt);
+
+      const completionTime = completedAt.diff(task.createdAt, 'minutes');
 
       if (completionTime < fastest.time) {
         fastest.title = task.title;
@@ -517,18 +429,23 @@ export const getMyMostBusyHoursAndDays = async (req, res) => {
     where: {
       userId: req.user.id,
       status: TASK_STATUS.DONE,
+      completedAt: {
+        not: null,
+      },
     },
     select: {
-      firstCompletedAt: true,
-    },
-    orderBy: {
-      firstCompletedAt: 'asc',
+      completedAt: true,
     },
   });
 
   const busyDays = completedTasks.reduce((acc, task) => {
-    const day = dayjs(task.firstCompletedAt).format('dddd');
-    const hour = dayjs(task.firstCompletedAt).format('HH:00');
+    // example completedAt: 2024-04-11T12:32:20.379Z
+    const completedAtDateWithoutTimezone = task.completedAt.split('T')[0];
+    const completedAtTimeWithoutTimezone = task.completedAt
+      .split('T')[1]
+      .split('.')[0];
+    const day = dayjs(completedAtDateWithoutTimezone).format('dddd');
+    const hour = completedAtTimeWithoutTimezone.split(':')[0] + ':00';
 
     if (!acc[day]) {
       acc[day] = {};
@@ -591,19 +508,24 @@ export const getMyAverageCompletionTimeByImpact = async (req, res) => {
     where: {
       userId: req.user.id,
       status: TASK_STATUS.DONE,
+      completedAt: {
+        not: null,
+      },
     },
     select: {
       impact: true,
       createdAt: true,
-      firstCompletedAt: true,
+      completedAt: true,
     },
   });
 
   const completionTimeByImpact = tasks.reduce((acc, task) => {
-    const completionTime = dayjs(task.firstCompletedAt).diff(
-      task.createdAt,
-      'minutes',
-    );
+    // completedAt is a string with timezone like this: 2024-04-11T12:32:20.379Z
+    // createdAt is a date with gmt timezone
+    // convert completedAt to date with gmt timezone
+    const completedAt = dayjs(task.completedAt);
+
+    const completionTime = completedAt.diff(task.createdAt, 'minutes');
 
     if (!acc[task.impact]) {
       acc[task.impact] = {
