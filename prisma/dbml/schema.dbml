@@ -98,7 +98,7 @@ Table UserBadge {
 Table TaskCounter {
   id String [pk]
   userId String [unique, not null]
-  updatedAt DateTime [default: `now()`, not null]
+  updatedAt String
   completedToday Int [not null, default: 0]
   completedAfterTenPm Int [not null, default: 0]
   completedBeforeNoon Int [not null, default: 0]

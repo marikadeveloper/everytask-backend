@@ -128,8 +128,9 @@ export async function updateTaskCounter({
 
   // reset daily and weekly counters if needed
   const dateWithoutTime = updatedAt.split('T')[0];
-  const hasBeenUpdatedBeforeToday = dayjs(dateWithoutTime).isBefore(
-    dayjs().startOf('day'),
+  const updatedAtWithoutTime = taskCounter.updatedAt.split('T')[0];
+  const hasBeenUpdatedBeforeToday = dayjs(updatedAtWithoutTime).isBefore(
+    dayjs(dateWithoutTime).startOf('day'),
   );
   if (hasBeenUpdatedBeforeToday) {
     taskCounter = await resetDailyTaskCounters({ userId });
@@ -138,7 +139,7 @@ export async function updateTaskCounter({
   // update the counter
   if (action === 'create') {
     // total++, if task has category, categorized++
-    taskCounter = await incrementTaskCounter(task, userId);
+    taskCounter = await incrementTaskCounter(task, userId, updatedAt);
   } else if (action === 'statusUpdate' && data.newStatus === TASK_STATUS.DONE) {
     taskCounter = await updateTaskCounterOnCompletion(task, userId, updatedAt);
   }
@@ -146,12 +147,13 @@ export async function updateTaskCounter({
   return taskCounter;
 }
 
-async function incrementTaskCounter(task, userId) {
+async function incrementTaskCounter(task, userId, updatedAt) {
   return await prisma.taskCounter.update({
     where: { userId },
     data: {
       total: { increment: 1 },
       categorized: task.categoryId ? { increment: 1 } : undefined,
+      updatedAt,
     },
   });
 }
@@ -172,6 +174,7 @@ async function updateTaskCounterOnCompletion(task, userId, completedAt) {
       completedAfterTenPm: completedAfterTenPm ? { increment: 1 } : undefined,
       completedOnWeekend: completedOnWeekend ? { increment: 1 } : undefined,
       completedTiny: completedTiny ? { increment: 1 } : undefined,
+      updatedAt: completedAt,
     },
   });
 }

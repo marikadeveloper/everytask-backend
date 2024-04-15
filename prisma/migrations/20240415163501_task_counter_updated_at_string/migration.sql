@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "TaskCounter" ALTER COLUMN "updatedAt" DROP NOT NULL,
+ALTER COLUMN "updatedAt" DROP DEFAULT,
+ALTER COLUMN "updatedAt" SET DATA TYPE TEXT;

@@ -138,22 +138,22 @@ model UserBadge {
 }
 
 model TaskCounter {
-  id                  String   @id @default(uuid())
-  userId              String   @unique
+  id                  String  @id @default(uuid())
+  userId              String  @unique
   // I need updatedAt to reset some of the counters daily
-  updatedAt           DateTime @default(now())
+  updatedAt           String?
   // (reset daily)
   // today's tasks 
-  completedToday      Int      @default(0) // task master badge
+  completedToday      Int     @default(0) // task master badge
   // (do not reset)
-  completedAfterTenPm Int      @default(0) // night owl badge
-  completedBeforeNoon Int      @default(0) // early bird badge
-  completedOnWeekend  Int      @default(0) // weekend warrior badge
-  completedTiny       Int      @default(0) // small wins matter badge
-  categorized         Int      @default(0) // master organizer badge
-  completed           Int      @default(0)
-  total               Int      @default(0)
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedAfterTenPm Int     @default(0) // night owl badge
+  completedBeforeNoon Int     @default(0) // early bird badge
+  completedOnWeekend  Int     @default(0) // weekend warrior badge
+  completedTiny       Int     @default(0) // small wins matter badge
+  categorized         Int     @default(0) // master organizer badge
+  completed           Int     @default(0)
+  total               Int     @default(0)
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // this model is just to show the daily stats of a user in the My Journey page

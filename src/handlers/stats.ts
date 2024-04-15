@@ -108,8 +108,6 @@ export const getMyTasksByStatus = async (req, res) => {
   }
  */
 export const getMyTasksByImpact = async (req, res) => {
-  console.log('req.user', req.user);
-
   if (!req.user) {
     res.status(401).json({ message: 'Unauthorized' });
     return;
