@@ -128,7 +128,7 @@ export async function updateTaskCounter({
 
   // reset daily and weekly counters if needed
   const dateWithoutTime = updatedAt.split('T')[0];
-  const updatedAtWithoutTime = taskCounter.updatedAt.split('T')[0];
+  const updatedAtWithoutTime = taskCounter.updatedAt?.split('T')[0];
   const hasBeenUpdatedBeforeToday = dayjs(updatedAtWithoutTime).isBefore(
     dayjs(dateWithoutTime).startOf('day'),
   );
