@@ -66,7 +66,7 @@ router.post(
   body('updatedAt').exists().isString(),
   body('dueDate').exists().isString(),
   body('impact').exists().isIn(Object.values(TaskImpact)),
-  body('title').exists().isString(),
+  body('title').exists().isString().trim().notEmpty().isLength({ min: 1 }),
   body('categoryId').optional().isString(),
   body('description').optional().isString(),
   body('emoji').optional().isString(),
@@ -83,7 +83,7 @@ router.put(
   body('impact').optional().isIn(Object.values(TaskImpact)),
   body('relativeOrder').optional().isInt(),
   body('status').optional().isIn(Object.values(TaskStatus)),
-  body('title').optional().isString(),
+  body('title').optional().isString().trim().notEmpty().isLength({ min: 1 }),
   checkTaskOwnership,
   updateTask,
 );
@@ -98,7 +98,7 @@ router.get(
  */
 router.post(
   '/checklist-items',
-  body('title').exists().isString(),
+  body('title').exists().isString().trim().notEmpty().isLength({ min: 1 }),
   body('taskId').exists().isString(),
   handleInputErrors,
   checkTaskOwnership,
@@ -107,7 +107,7 @@ router.post(
 router.put(
   '/checklist-items/:id',
   body('taskId').exists().isString(),
-  body('title').optional().isString(),
+  body('title').optional().isString().trim().notEmpty().isLength({ min: 1 }),
   body('order').optional().isInt(),
   handleInputErrors,
   checkTaskOwnership,
@@ -126,7 +126,7 @@ router.delete(
 router.get('/categories', getCategories);
 router.post(
   '/categories',
-  body('name').exists().isString(),
+  body('name').exists().isString().trim().notEmpty(),
   handleInputErrors,
   createCategory,
 );
