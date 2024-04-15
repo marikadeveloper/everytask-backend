@@ -42,7 +42,6 @@ export const createNewUser = async (req, res, next) => {
 
     res.json(userResponse(user));
   } catch (e) {
-    e.type = 'input';
     next(e);
   }
 };
