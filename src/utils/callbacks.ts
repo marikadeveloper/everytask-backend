@@ -127,7 +127,7 @@ export async function updateTaskCounter({
   }
 
   // reset daily and weekly counters if needed
-  const dateWithoutTime = updatedAt.split('T')[0];
+  const dateWithoutTime = updatedAt.split ? updatedAt.split('T')[0] : updatedAt;
   const updatedAtWithoutTime = !!taskCounter.updatedAt?.split
     ? taskCounter.updatedAt.split('T')[0]
     : taskCounter.updatedAt;
