@@ -12,16 +12,12 @@
   "author": "Marika Mella",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^20.11.20",
-    "prisma": "^5.12.1",
-    "prisma-dbml-generator": "^0.12.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "@prisma/client": "^5.12.1",
+    "@prisma/client": "^5.13.0",
     "@sentry/node": "^7.107.0",
     "@sentry/profiling-node": "^7.107.0",
     "@sentry/vite-plugin": "^2.16.0",
     "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.20",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dayjs": "^1.11.10",
@@ -34,8 +30,14 @@
     "lodash.merge": "^4.6.2",
     "mailgun.js": "^10.2.1",
     "morgan": "^1.10.0",
+    "prisma-dbml-generator": "^0.12.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
-    "ts-jest": "^29.1.2"
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "prisma": "^5.13.0"
   }
 }
