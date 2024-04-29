@@ -4,6 +4,117 @@ import prisma from '../db';
 import { BadgeCode } from '../types/enums';
 import { getMaxLevel } from './level';
 
+export async function importBadges(req, res, next) {
+  const badges: { code: string; name: string; description: string }[] = [
+    {
+      code: 'ice-breaker',
+      name: 'Ice Breaker',
+      description: 'Complete your first task',
+    },
+    {
+      code: 'early-bird',
+      name: 'Early Bird',
+      description: 'Complete 3 tasks before noon',
+    },
+    {
+      code: 'night-owl',
+      name: 'Night Owl',
+      description: 'Finish 2 tasks after 10pm',
+    },
+    {
+      code: 'busy-bee',
+      name: 'Busy Bee',
+      description: 'Complete 5 tasks in one day',
+    },
+    {
+      code: 'over-achiever',
+      name: 'Over Achiever',
+      description: 'Complete 10 tasks in one day',
+    },
+    {
+      code: 'streak-starter',
+      name: 'Streak Starter',
+      description: 'Begin a 3-day task completion streak',
+    },
+    {
+      code: 'persistence-pays-off',
+      name: 'Persistence Pays Off',
+      description: 'Maintain a 7-day completion streak',
+    },
+    {
+      code: 'weekend-warrior',
+      name: 'Weekend Warrior',
+      description: 'Conquer 5 tasks over the weekend',
+    },
+    {
+      code: 'small-wins-matter',
+      name: 'Small Wins Matter',
+      description: 'Celebrate completing 3 tiny tasks (e.g., making your bed)',
+    },
+    {
+      code: 'epic-achiever',
+      name: 'Epic Achiever',
+      description: 'Finish a particularly difficult or long-term task',
+    },
+    {
+      code: 'overcomer',
+      name: 'Overcomer',
+      description: 'Finish a task you procrastinated on for a week',
+    },
+    {
+      code: 'early-completion',
+      name: 'Early Completion',
+      description: 'Finish a major task significantly ahead of schedule',
+    },
+    {
+      code: 'master-organizer',
+      name: 'Master',
+      description: 'Categorize and tag 10 tasks effectively',
+    },
+    {
+      code: 'streak-superstar',
+      name: 'Streak Superstar',
+      description: 'Maintain a 30-day completion streak',
+    },
+    {
+      code: 'level-up-legend',
+      name: 'Level Up Legend',
+      description: 'Reach the highest user level in the app',
+    },
+    {
+      code: 'bug-buster',
+      name: 'Bug Buster',
+      description: 'Report and help fix a bug in the app',
+    },
+    {
+      code: 'appreciation-award',
+      name: 'Appreciation Award',
+      description: 'Receive a special badge from the app developers',
+    },
+    {
+      code: 'hundo-hustler',
+      name: 'Hundo Hustler',
+      description: 'Complete 100 tasks in total',
+    },
+    {
+      code: 'task-titan',
+      name: 'Task Titan',
+      description: 'Complete 500 tasks in total',
+    },
+    {
+      code: 'all-star-achiever',
+      name: 'All-Star Achiever',
+      description: 'Get all the badges in the app',
+    },
+  ];
+  // insert all badges in the database
+  await prisma.badge.createMany({
+    data: badges,
+  });
+
+  res.json({ message: 'Badges imported' });
+}
+
 const TOT_BADGES_COUNT = 20;
 
 // Helper function to check if a user already has a badge
